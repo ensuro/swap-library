@@ -1,0 +1,40 @@
+{
+  "name": "swaplibrary",
+  "version": "0.0.1",
+  "scripts": {
+    "prettier": "prettier --write 'contracts/**/*.sol' --write 'test/**/*.js'",
+    "solhint": "solhint 'contracts/**/*.sol'"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/hardhat-upgrades": "^3.0.3",
+    "dotenv": "^16.0.3",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^8.8.0",
+    "hardhat": "^2.20.1",
+    "hardhat-contract-sizer": "^2.10.0",
+    "prettier": "^3.2.5",
+    "solhint": "^4.1.1",
+    "solhint-plugin-prettier": "^0.1.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.2",
+    "@openzeppelin/contracts-upgradeable": "^4.9.2",
+    "@uniswap/v3-periphery": "^1.4.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ensuro/swap-library.git"
+  },
+  "keywords": [
+    "ensuro",
+    "swap",
+    "library",
+    "oracles"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ensuro/swap-library/issues"
+  },
+  "homepage": "https://github.com/ensuro/swap-library#readme"
+}
