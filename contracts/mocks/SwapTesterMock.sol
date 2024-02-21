@@ -16,6 +16,7 @@ contract SwapTesterMock {
     uint256 amount,
     uint256 price
   ) external virtual {
+    swapConfig.validate();
     uint256 ret = swapConfig.exactInput(tokenIn, tokenOut, amount, price);
     emit ExactInputResult(ret);
   }
@@ -27,7 +28,8 @@ contract SwapTesterMock {
     uint256 amount,
     uint256 price
   ) external virtual {
-    uint256 ret = swapConfig.exactInput(tokenIn, tokenOut, amount, price);
+    swapConfig.validate();
+    uint256 ret = swapConfig.exactOutput(tokenIn, tokenOut, amount, price);
     emit ExactOutputResult(ret);
   }
 }

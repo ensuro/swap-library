@@ -56,6 +56,11 @@ library SwapLibrary {
    *
    * - Should have at least `amount` of tokenIn in the contract to execute the transaction.
    * - That exact `amount` went out and an tokenOut amount equal to amount/price +- slippage% came in.
+   *
+   * - SwapConfig must be valid
+   *   - FeeTier > 0
+   *   - maxSlippage > 0
+   *   - Valid Swap Router and protocol
    */
   function exactInput(
     SwapConfig calldata swapConfig,
@@ -79,9 +84,14 @@ library SwapLibrary {
    * @param price Approximate amount of units of tokenIn required to acquire a unit of tokenOut.
    *              It will be validated against the swap rate considering the maxSlippage.
    *
-   * - Should have sufficient `tokenOut` to fulfill the desired output amount.
+   * - Should have sufficient `tokenIn` to fulfill the desired output amount.
    * - The actual amount of input tokens (`tokenIn`) spent to obtain the desired output amount (`amount`)
    *   should be within the expected slippage range.
+   *
+   * - SwapConfig must be valid
+   *   - FeeTier > 0
+   *   - maxSlippage > 0
+   *   - Valid Swap Router and protocol
    */
   function exactOutput(
     SwapConfig calldata swapConfig,
