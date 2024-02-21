@@ -3,14 +3,17 @@
   "version": "0.0.1",
   "scripts": {
     "prettier": "prettier --write 'contracts/**/*.sol' --write 'test/**/*.js'",
-    "solhint": "solhint 'contracts/**/*.sol'"
+    "solhint": "solhint 'contracts/**/*.sol'",
+    "test": "hardhat test"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/hardhat-upgrades": "^3.0.3",
-    "dotenv": "^16.0.3",
-    "eslint": "^8.45.0",
-    "eslint-config-prettier": "^8.8.0",
+    "chai": "^4.3.6",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
     "hardhat": "^2.20.1",
     "hardhat-contract-sizer": "^2.10.0",
     "prettier": "^3.2.5",

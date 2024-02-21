@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {WadRayMath} from "./dependencies/WadRayMath.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Swap Library
@@ -51,7 +52,11 @@ library SwapLibrary {
    * @param tokenIn The address of the token to be swapped.
    * @param tokenOut The address of the token to be received as a result of the swap.
    * @param amount The exact amount of input token to be swapped.
-   * @param price The price at which the swap will occur.
+   * @param price Approximate amount of units of tokenIn required to acquire a unit of tokenOut.
+   *              It will be validated against the swap rate considering the maxSlippage.
+   *
+   * - Should have at least `amount` of tokenIn in the contract to execute the transaction.
+   * - That exact `amount` went out and an tokenOut amount equal to amount/price +- slippage% came in.
    */
   function exactInput(
     SwapConfig calldata swapConfig,
@@ -72,7 +77,12 @@ library SwapLibrary {
    * @param tokenIn The address of the token to be used as input for the swap.
    * @param tokenOut The address of the token to be received as a result of the swap.
    * @param amount The desired amount of output tokens (`tokenOut`) to be obtained from the swap.
-   * @param price The price at which the swap will occur.
+   * @param price Approximate amount of units of tokenIn required to acquire a unit of tokenOut.
+   *              It will be validated against the swap rate considering the maxSlippage.
+   *
+   * - Should have sufficient `tokenOut` to fulfill the desired output amount.
+   * - The actual amount of input tokens (`tokenIn`) spent to obtain the desired output amount (`amount`)
+   *   should be within the expected slippage range.
    */
   function exactOutput(
     SwapConfig calldata swapConfig,
