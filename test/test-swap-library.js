@@ -4,7 +4,6 @@ const helpers = require("@nomicfoundation/hardhat-network-helpers");
 const { initCurrency, amountFunction } = require("../utils/utils");
 
 const { ethers } = hre;
-// const { MaxUint256 } = hre.ethers;
 const { ZeroAddress } = ethers;
 
 // enum
@@ -141,12 +140,10 @@ describe("SwapLibrary library tests", function () {
     );
     const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
 
-    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
-
-    await expect(
-      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.emit(swapTesterMock, "ExactOutputResult");
-    // .withArgs(_W("10" / "0.62")); // _W("10" / "0.62")
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.65"));
+    await expect(swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("0.65")))
+      .to.emit(swapTesterMock, "ExactOutputResult")
+      .withArgs(_A("6.5")); // _W(10) * _W("0.65") / 10 ** ( 18 - currency.decimals -->6 )
   });
 
   it("SwapLibrary exact input with price higger than slippage", async () => {
@@ -179,5 +176,35 @@ describe("SwapLibrary library tests", function () {
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.60")) // 0.62 - 3%
     ).to.be.revertedWith("amountOutMinimum not reached");
+  });
+
+  it("SwapLibrary exact output with price higger than slippage", async () => {
+    const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
+
+    const swapCustomParams = ethers.AbiCoder.defaultAbiCoder().encode(
+      ["uint24", "address"],
+      [_A("0.0005"), swapRouter.target]
+    );
+    const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
+
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("1.15")); // 1.1 + 3%
+    await expect(
+      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("1.1"))
+    ).to.be.revertedWith("amountInMaximum exceeded");
+  });
+
+  it("SwapLibrary exact output with price lower than slippage", async () => {
+    const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
+
+    const swapCustomParams = ethers.AbiCoder.defaultAbiCoder().encode(
+      ["uint24", "address"],
+      [_A("0.0005"), swapRouter.target]
+    );
+    const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
+
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("1.1"));
+    await expect(
+      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("1.04")) // 1.1 - 3%
+    ).to.be.revertedWith("amountInMaximum exceeded");
   });
 });
