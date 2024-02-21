@@ -128,7 +128,7 @@ describe("SwapLibrary library tests", function () {
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
     ).to.emit(swapTesterMock, "ExactInputResult");
-    // .withArgs(_W("10") / _W("0.62")); // _W("10" / "0.62")
+    // .withArgs(_W("10" / "0.62")); // _W("10" / "0.62")
   });
 
   it("SwapLibrary exact output", async () => {
@@ -206,5 +206,37 @@ describe("SwapLibrary library tests", function () {
     await expect(
       swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("1.04")) // 1.1 - 3%
     ).to.be.revertedWith("amountInMaximum exceeded");
+  });
+
+  it("SwapLibrary exact input/output with 18 decimals tokenIn", async () => {
+    const { wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
+
+    const currency18Decimals = await initCurrency(
+      { name: "Test 18Dec", symbol: "18Dec", decimals: 18, initial_supply: _W(500000) },
+      [lp, cust, owner, extra],
+      [_W("10000"), _W("2000"), _W("1000"), _W("100000")]
+    );
+
+    await currency18Decimals.connect(extra).transfer(swapTesterMock.target, _W(20000));
+
+    const swapCustomParams = ethers.AbiCoder.defaultAbiCoder().encode(
+      ["uint24", "address"],
+      [_A("0.0005"), swapRouter.target]
+    );
+    const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
+
+    await swapRouter.setCurrentPrice(currency18Decimals.target, wmatic.target, _W("0.62"));
+
+    await expect(
+      swapTesterMock.executeExactInput(swapConfig, currency18Decimals.target, wmatic.target, _W(10), _W("0.62"))
+    ).to.emit(swapTesterMock, "ExactInputResult");
+    // .withArgs(_W("10" / "0.62")); // _W("10" / "0.62")
+
+    await swapRouter.setCurrentPrice(currency18Decimals.target, wmatic.target, _W("0.65"));
+    await expect(
+      swapTesterMock.executeExactOutput(swapConfig, currency18Decimals.target, wmatic.target, _W(10), _W("0.65"))
+    )
+      .to.emit(swapTesterMock, "ExactOutputResult")
+      .withArgs(_W("6.5")); // _W(10) * _W("0.65") / 10 ** ( 18 - currency18Decimals.decimals -->18 ) = _W(10) * _W(0.65) / 10 ** 0
   });
 });
