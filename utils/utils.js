@@ -1,6 +1,12 @@
 const hre = require("hardhat");
 const { ethers } = hre;
 
+// enum
+const Protocols = {
+  undefined: 0,
+  uniswap: 1,
+};
+
 async function initCurrency(options, initial_targets, initial_balances) {
   const Currency = await ethers.getContractFactory(options.contractClass || "TestCurrency");
   let currency = await Currency.deploy(
@@ -42,7 +48,14 @@ function amountFunction(decimals) {
   };
 }
 
+function buildUniswapConfig(protocol, slippage, feeTier, router) {
+  let swapCustomParams = ethers.AbiCoder.defaultAbiCoder().encode(["uint24", "address"], [feeTier, router]);
+  return [protocol, slippage, swapCustomParams];
+}
+
 module.exports = {
+  Protocols,
   initCurrency,
   amountFunction,
+  buildUniswapConfig,
 };
