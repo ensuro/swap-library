@@ -40,7 +40,7 @@ describe("SwapLibrary library tests", function () {
     );
 
     const SwapRouterMock = await ethers.getContractFactory("SwapRouterMock");
-    const swapRouter = await SwapRouterMock.deploy(admin.address, currency.target);
+    const swapRouter = await SwapRouterMock.deploy(admin.address);
     await swapRouter.waitForDeployment();
 
     const SwapLibrary = await ethers.getContractFactory("SwapLibrary");
@@ -65,7 +65,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary validations", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    await swapRouter.setCurrentPrice(_W("0.62"));
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     let swapCustomParams = ethers.AbiCoder.defaultAbiCoder().encode(
       ["uint24", "address"],
@@ -124,7 +124,7 @@ describe("SwapLibrary library tests", function () {
     );
     const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
 
-    await swapRouter.setCurrentPrice(_W("0.62"));
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
@@ -141,7 +141,7 @@ describe("SwapLibrary library tests", function () {
     );
     const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
 
-    await swapRouter.setCurrentPrice(_W("0.62"));
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     await expect(
       swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
@@ -158,7 +158,7 @@ describe("SwapLibrary library tests", function () {
     );
     const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
 
-    await swapRouter.setCurrentPrice(_W("0.65")); // 0.62 + 3%
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.65")); // 0.62 + 3%
 
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
@@ -174,7 +174,7 @@ describe("SwapLibrary library tests", function () {
     );
     const swapConfig = [Protocols.uniswap, _W("0.02"), swapCustomParams];
 
-    await swapRouter.setCurrentPrice(_W("0.62"));
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.60")) // 0.62 - 3%
