@@ -107,12 +107,27 @@ describe("SwapLibrary library tests", function () {
 
     const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
 
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
+
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
     ).to.emit(swapTesterMock, "ExactInputResult");
-    // .withArgs(_W("10" / "0.62")); // _W("10" / "0.62")
+
+    let wmaticBalance = _W("1000") - _W("10" / "0.62");
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.closeTo(wmaticBalance, _W("0.001"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(10));
+
+    await swapRouter.setCurrentPrice(wmatic.target, currency.target, _W("1.1"));
+    await expect(
+      swapTesterMock.executeExactInput(swapConfig, wmatic.target, currency.target, _W(5), _W("1.1"))
+    ).to.emit(swapTesterMock, "ExactInputResult");
+
+    wmaticBalance += _W("5");
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.closeTo(wmaticBalance, _W("0.001"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.closeTo(_A("10") - _A("4.5"), _A("0.1"));
   });
 
   it("SwapLibrary exactInput with price inside slippage", async () => {
@@ -120,19 +135,27 @@ describe("SwapLibrary library tests", function () {
 
     const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
 
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
+
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.64"))
     ).to.emit(swapTesterMock, "ExactInputResult");
-    // .withArgs(_W("10" / "0.62")); // _W("10" / "0.62")
+
+    let balance = _W("1000") - _W("10" / "0.62");
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.closeTo(balance, _W("0.001"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(10));
 
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.63"));
-
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
     ).to.emit(swapTesterMock, "ExactInputResult");
-    // .withArgs(_W("10" / "0.63")); // _W("10" / "0.62")
+
+    balance -= _W("10" / "0.63");
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.closeTo(balance, _W("0.001"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(20));
   });
 
   it("SwapLibrary exact output", async () => {
@@ -140,10 +163,24 @@ describe("SwapLibrary library tests", function () {
 
     const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
 
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
+
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.65"));
     await expect(swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("0.65")))
       .to.emit(swapTesterMock, "ExactOutputResult")
       .withArgs(_A("6.5")); // _W(10) * _W("0.65") / 10 ** ( 18 - currency.decimals -->6 )
+
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("990"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A("6.5"));
+
+    await swapRouter.setCurrentPrice(wmatic.target, currency.target, _W("1.1"));
+    await expect(swapTesterMock.executeExactOutput(swapConfig, wmatic.target, currency.target, _A(5), _W("1.1")))
+      .to.emit(swapTesterMock, "ExactOutputResult")
+      .withArgs(_W("5.5"));
+
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("990") + _W("5.5"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A("1.5"));
   });
 
   it("SwapLibrary exactOutput with price inside slippage", async () => {
@@ -151,15 +188,24 @@ describe("SwapLibrary library tests", function () {
 
     const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
 
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
+
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.65"));
     await expect(swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("0.67")))
       .to.emit(swapTesterMock, "ExactOutputResult")
       .withArgs(_A("6.5")); // _W(10) * _W("0.65") / 10 ** ( 18 - currency.decimals -->6 )
 
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("990"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A("6.5"));
+
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.63"));
     await expect(swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("0.619")))
       .to.emit(swapTesterMock, "ExactOutputResult")
       .withArgs(_A("6.3")); // _W(10) * _W("0.63") / 10 ** ( 18 - currency.decimals -->6 )
+
+    expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("980"));
+    expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A("12.8"));
   });
 
   it("SwapLibrary exact input with price higger than slippage", async () => {

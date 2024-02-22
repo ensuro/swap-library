@@ -38,9 +38,10 @@ contract SwapRouterMock is ISwapRouter {
     require(params.deadline >= block.timestamp, "Deadline in the past");
     require(params.amountIn > 0, "amountIn cannot be zero");
 
-    amountOut = (params.amountIn * _toWadFactor(params.tokenIn)).wadDiv(
+    uint256 amountOutInWad = (params.amountIn * _toWadFactor(params.tokenIn)).wadDiv(
       _prices[params.tokenIn][params.tokenOut]
     );
+    amountOut = amountOutInWad / _toWadFactor(params.tokenOut);
     require(amountOut >= params.amountOutMinimum, "amountOutMinimum not reached");
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, address(this), params.amountIn);
@@ -61,7 +62,9 @@ contract SwapRouterMock is ISwapRouter {
       "Not enough balance"
     );
 
-    uint256 amountInWad = params.amountOut.wadMul(_prices[params.tokenIn][params.tokenOut]);
+    uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).wadMul(
+      _prices[params.tokenIn][params.tokenOut]
+    );
     amountIn = amountInWad / _toWadFactor(params.tokenIn);
 
     require(amountIn <= params.amountInMaximum, "amountInMaximum exceeded");

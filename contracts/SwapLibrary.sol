@@ -54,13 +54,15 @@ library SwapLibrary {
    * @param price Approximate amount of units of tokenIn required to acquire a unit of tokenOut.
    *              It will be validated against the swap rate considering the maxSlippage.
    *
-   * - Should have at least `amount` of tokenIn in the contract to execute the transaction.
-   * - That exact `amount` went out and an tokenOut amount equal to amount/price +- slippage% came in.
+   * @notice Should have at least `amount` of tokenIn in the contract to execute the transaction.
    *
+   * Requirements:
    * - SwapConfig must be valid
    *   - FeeTier > 0
    *   - maxSlippage > 0
    *   - Valid Swap Router and protocol
+   *
+   * @return That exact `amount` went out and an tokenOut amount equal to amount/price +- slippage% came in.
    */
   function exactInput(
     SwapConfig calldata swapConfig,
@@ -84,14 +86,16 @@ library SwapLibrary {
    * @param price Approximate amount of units of tokenIn required to acquire a unit of tokenOut.
    *              It will be validated against the swap rate considering the maxSlippage.
    *
-   * - Should have sufficient `tokenIn` to fulfill the desired output amount.
-   * - The actual amount of input tokens (`tokenIn`) spent to obtain the desired output amount (`amount`)
-   *   should be within the expected slippage range.
+   * @notice Should have sufficient `tokenIn` to fulfill the desired output amount.
    *
+   * Requirements:
    * - SwapConfig must be valid
    *   - FeeTier > 0
    *   - maxSlippage > 0
    *   - Valid Swap Router and protocol
+   *
+   * @return The actual amount of input tokens (`tokenIn`) spent to obtain the desired output amount (`amount`)
+   *   should be within the expected slippage range.
    */
   function exactOutput(
     SwapConfig calldata swapConfig,
@@ -114,7 +118,7 @@ library SwapLibrary {
     uint256 price
   ) internal returns (uint256) {
     UniswapCustomParams memory cp = abi.decode(swapConfig.customParams, (UniswapCustomParams));
-    uint256 currencyMin = (amount * _toWadFactor(tokenIn)).wadDiv(price).wadMul(
+    uint256 amountInMin = (amount * _toWadFactor(tokenIn)).wadDiv(price).wadMul(
       WadRayMath.WAD - swapConfig.maxSlippage
     ) / _toWadFactor(tokenOut);
 
@@ -126,7 +130,7 @@ library SwapLibrary {
       recipient: address(this),
       deadline: block.timestamp,
       amountIn: amount,
-      amountOutMinimum: currencyMin,
+      amountOutMinimum: amountInMin,
       sqrtPriceLimitX96: 0 // Since we're limiting the transfer amount, we don't need to worry about the price impact of the transaction
     });
 
@@ -137,7 +141,7 @@ library SwapLibrary {
       "SwapLibrary: something wrong, allowance should go back to 0"
     );
     // Sanity check
-    require(received >= currencyMin, "SwapLibrary: the payout is not enough to cover the tx fees");
+    require(received >= amountInMin, "SwapLibrary: slippage greater than maxSlippage");
     return received;
   }
 
@@ -153,8 +157,8 @@ library SwapLibrary {
     uint256 amountInMax = (amount * _toWadFactor(tokenOut)).wadMul(price).wadMul(
       WadRayMath.WAD + swapConfig.maxSlippage
     ) / _toWadFactor(tokenIn);
-    IERC20Metadata(tokenIn).approve(address(cp.router), type(uint256).max);
 
+    IERC20Metadata(tokenIn).approve(address(cp.router), type(uint256).max);
     ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
       tokenIn: tokenIn,
       tokenOut: tokenOut,
@@ -168,7 +172,6 @@ library SwapLibrary {
     uint256 actualAmount = cp.router.exactOutputSingle(params);
 
     IERC20Metadata(tokenIn).approve(address(cp.router), 0);
-
     // Sanity check
     require(actualAmount <= amountInMax, "SwapLibrary: exchange rate higher than tolerable");
     return actualAmount;
