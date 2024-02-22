@@ -42,7 +42,7 @@ contract SwapRouterMock is ISwapRouter {
       _prices[params.tokenIn][params.tokenOut]
     );
     amountOut = amountOutInWad / _toWadFactor(params.tokenOut);
-    require(amountOut >= params.amountOutMinimum, "amountOutMinimum not reached");
+    require(amountOut >= params.amountOutMinimum, "The output amount is less than the slippage");
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, address(this), params.amountIn);
     IERC20Metadata(params.tokenOut).safeTransfer(params.recipient, amountOut);
@@ -67,7 +67,7 @@ contract SwapRouterMock is ISwapRouter {
     );
     amountIn = amountInWad / _toWadFactor(params.tokenIn);
 
-    require(amountIn <= params.amountInMaximum, "amountInMaximum exceeded");
+    require(amountIn <= params.amountInMaximum, "The input amount exceeds the slippage");
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
     IERC20Metadata(params.tokenOut).safeTransfer(params.recipient, params.amountOut);
