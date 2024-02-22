@@ -57,6 +57,7 @@ library SwapLibrary {
    * @notice Should have at least `amount` of tokenIn in the contract to execute the transaction.
    *
    * Requirements:
+   * - tokenIn and tokenOut decimals <= 18
    * - SwapConfig must be valid
    *   - FeeTier > 0
    *   - maxSlippage > 0
@@ -89,6 +90,7 @@ library SwapLibrary {
    * @notice Should have sufficient `tokenIn` to fulfill the desired output amount.
    *
    * Requirements:
+   * - tokenIn and tokenOut decimals <= 18
    * - SwapConfig must be valid
    *   - FeeTier > 0
    *   - maxSlippage > 0
