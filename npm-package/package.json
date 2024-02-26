@@ -1,0 +1,27 @@
+{
+  "name": "@ensuro/swaplibrary",
+  "version": "%%VERSION%%",
+  "files": [
+    "**/*.sol",
+    "/build/contracts/*.json",
+    "/build/interfaces/*.json",
+    "/js/*.js",
+    "/scripts/*.sh",
+    "/scripts/*.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ensuro/swap-library.git"
+  },
+  "keywords": [
+    "ensuro",
+    "swap",
+    "library",
+    "oracles"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ensuro/swap-library/issues"
+  },
+  "homepage": "https://github.com/ensuro/swap-library#readme"
+}
