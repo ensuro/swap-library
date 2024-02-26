@@ -81,6 +81,32 @@ describe("SwapLibrary library tests", function () {
     );
   });
 
+  it("SwapLibrary exactInput and exactOutput with invalid protocol", async () => {
+    const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
+
+    await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
+
+    // Invalid protocol exactInput and Output return 0
+    let swapConfig = [Protocols.undefined, _W("0.02"), "0x00"];
+    expect(await swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62")))
+      .to.emit(swapTesterMock, "ExactInputResult")
+      .withArgs(0);
+
+    expect(await swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62")))
+      .to.emit(swapTesterMock, "ExactOutputResult")
+      .withArgs(0);
+
+    // SwapRouter cannot be ZeroAddress
+    swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), ZeroAddress);
+    await expect(
+      swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
+    ).to.be.revertedWith("ERC20: approve to the zero address");
+
+    await expect(
+      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
+    ).to.be.revertedWith("ERC20: approve to the zero address");
+  });
+
   it("SwapLibrary exact input", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
