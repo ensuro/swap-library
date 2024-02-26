@@ -62,44 +62,23 @@ describe("SwapLibrary library tests", function () {
 
     // Slippage cannot be 0
     let swapConfig = buildUniswapConfig(_W(0), _A("0.0005"), swapRouter.target);
-
-    await expect(
-      swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: maxSlippage cannot be zero");
-
-    await expect(
-      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: maxSlippage cannot be zero");
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith(
+      "SwapLibrary: maxSlippage cannot be zero"
+    );
 
     // Invalid protocol
     swapConfig = [Protocols.undefined, _W("0.02"), "0x00"];
-    await expect(
-      swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: invalid protocol");
-
-    await expect(
-      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: invalid protocol");
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith("SwapLibrary: invalid protocol");
 
     // Fee tier cannot be 0
     swapConfig = buildUniswapConfig(_W("0.02"), _A(0), swapRouter.target);
-    await expect(
-      swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: feeTier cannot be zero");
-
-    await expect(
-      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: feeTier cannot be zero");
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith("SwapLibrary: feeTier cannot be zero");
 
     // SwapRouter cannot be ZeroAddress
     swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), ZeroAddress);
-    await expect(
-      swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: SwapRouter address cannot be zero");
-
-    await expect(
-      swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("SwapLibrary: SwapRouter address cannot be zero");
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith(
+      "SwapLibrary: SwapRouter address cannot be zero"
+    );
   });
 
   it("SwapLibrary exact input", async () => {

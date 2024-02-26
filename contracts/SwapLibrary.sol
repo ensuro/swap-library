@@ -58,10 +58,7 @@ library SwapLibrary {
    *
    * Requirements:
    * - tokenIn and tokenOut decimals <= 18
-   * - SwapConfig must be valid
-   *   - FeeTier > 0
-   *   - maxSlippage > 0
-   *   - Valid Swap Router and protocol
+   * - SwapConfig must be valid and should be validated using the `validate()` method.
    *
    * @return That exact `amount` went out and an tokenOut amount equal to amount/price +- slippage% came in.
    */
@@ -91,10 +88,7 @@ library SwapLibrary {
    *
    * Requirements:
    * - tokenIn and tokenOut decimals <= 18
-   * - SwapConfig must be valid
-   *   - FeeTier > 0
-   *   - maxSlippage > 0
-   *   - Valid Swap Router and protocol
+   * - SwapConfig must be valid and should be validated using the `validate()` method.
    *
    * @return The actual amount of input tokens (`tokenIn`) spent to obtain the desired output amount (`amount`)
    *   should be within the expected slippage range.
