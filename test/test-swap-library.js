@@ -61,7 +61,7 @@ describe("SwapLibrary library tests", function () {
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     // Slippage cannot be 0
-    let swapConfig = buildUniswapConfig(Protocols.uniswap, _W(0), _A("0.0005"), swapRouter.target);
+    let swapConfig = buildUniswapConfig(_W(0), _A("0.0005"), swapRouter.target);
 
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
@@ -72,7 +72,7 @@ describe("SwapLibrary library tests", function () {
     ).to.be.revertedWith("SwapLibrary: maxSlippage cannot be zero");
 
     // Invalid protocol
-    swapConfig = buildUniswapConfig(Protocols.undefined, _W("0.02"), _A("0.0005"), swapRouter.target);
+    swapConfig = [Protocols.undefined, _W("0.02"), "0x00"];
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
     ).to.be.revertedWith("SwapLibrary: invalid protocol");
@@ -82,7 +82,7 @@ describe("SwapLibrary library tests", function () {
     ).to.be.revertedWith("SwapLibrary: invalid protocol");
 
     // Fee tier cannot be 0
-    swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A(0), swapRouter.target);
+    swapConfig = buildUniswapConfig(_W("0.02"), _A(0), swapRouter.target);
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
     ).to.be.revertedWith("SwapLibrary: feeTier cannot be zero");
@@ -92,7 +92,7 @@ describe("SwapLibrary library tests", function () {
     ).to.be.revertedWith("SwapLibrary: feeTier cannot be zero");
 
     // SwapRouter cannot be ZeroAddress
-    swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), ZeroAddress);
+    swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), ZeroAddress);
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
     ).to.be.revertedWith("SwapLibrary: SwapRouter address cannot be zero");
@@ -105,7 +105,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exact input", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
     expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
@@ -133,7 +133,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exactInput with price inside slippage", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
     expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
@@ -161,7 +161,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exact output", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
     expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
@@ -186,7 +186,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exactOutput with price inside slippage", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     expect(await wmatic.balanceOf(swapRouter.target)).to.be.equal(_W("1000"));
     expect(await currency.balanceOf(swapRouter.target)).to.be.equal(_A(0));
@@ -211,7 +211,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exact input with price higger than slippage", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.65")); // 0.62 + 3%
 
@@ -223,7 +223,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exact input with price lower than slippage", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
@@ -235,7 +235,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exact output with price higger than slippage", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("1.15")); // 1.1 + 3%
     await expect(
@@ -246,7 +246,7 @@ describe("SwapLibrary library tests", function () {
   it("SwapLibrary exact output with price lower than slippage", async () => {
     const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("1.1"));
     await expect(
@@ -265,7 +265,7 @@ describe("SwapLibrary library tests", function () {
 
     await currency18Decimals.connect(extra).transfer(swapTesterMock.target, _W(20000));
 
-    const swapConfig = buildUniswapConfig(Protocols.uniswap, _W("0.02"), _A("0.0005"), swapRouter.target);
+    const swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), swapRouter.target);
 
     await swapRouter.setCurrentPrice(currency18Decimals.target, wmatic.target, _W("0.62"));
 

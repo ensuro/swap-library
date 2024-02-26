@@ -48,9 +48,9 @@ function amountFunction(decimals) {
   };
 }
 
-function buildUniswapConfig(protocol, slippage, feeTier, router) {
+function buildUniswapConfig(slippage, feeTier, router) {
   let swapCustomParams = ethers.AbiCoder.defaultAbiCoder().encode(["uint24", "address"], [feeTier, router]);
-  return [protocol, slippage, swapCustomParams];
+  return [Protocols.uniswap, slippage, swapCustomParams];
 }
 
 module.exports = {
