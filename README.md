@@ -14,7 +14,7 @@ _Parameters_
 - `tokenIn`: The address of the token to be used as input for the swap.
 - `tokenOut`: The address of the token to be received as a result of the swap.
 - `amount`: The exact amount of input tokens to be swapped.
-- `price`: The price at which the swap will occur.
+- `price`: Approximate amount of units of tokenInrequired to acquire a unit oftokenOut. It will be validated against the swap rate considering the maxSlippage.
 
 ### exactOutput
 
@@ -26,4 +26,4 @@ _Parameters_
 - `tokenIn`: The address of the token to be used as input for the swap.
 - `tokenOut`: The address of the token to be received as a result of the swap.
 - `amount`: The desired amount of output tokens to be obtained from the swap.
-- `price`: The price at which the swap will occur.
+- `price`: Approximate amount of units of tokenInrequired to acquire a unit oftokenOut. It will be validated against the swap rate considering the maxSlippage.
