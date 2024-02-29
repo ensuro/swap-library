@@ -1,10 +1,43 @@
 const hre = require("hardhat");
 const { expect } = require("chai");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { initCurrency, amountFunction, Protocols, buildUniswapConfig } = require("../js/utils");
+const { Protocols, buildUniswapConfig } = require("../js/utils");
 
 const { ethers } = hre;
 const { ZeroAddress } = ethers;
+
+async function initCurrency(options, initial_targets, initial_balances) {
+  const Currency = await ethers.getContractFactory(options.contractClass || "TestCurrency");
+  let currency = await Currency.deploy(
+    options.name || "Test Currency",
+    options.symbol || "TEST",
+    options.initial_supply,
+    options.decimals || 18
+  );
+  initial_targets = initial_targets || [];
+  await Promise.all(
+    initial_targets.map(async function (user, index) {
+      await currency.transfer(user.address, initial_balances[index]);
+    })
+  );
+  return currency;
+}
+
+function amountFunction(decimals) {
+  return function (value) {
+    if (value === undefined) return undefined;
+
+    if (typeof value === "string" || value instanceof String) {
+      return ethers.parseUnits(value, decimals);
+    }
+
+    if (!Number.isInteger(value)) {
+      return BigInt(Math.round(value * 1e6).toString()) * BigInt(Math.pow(10, decimals - 6).toString());
+    }
+
+    return BigInt(value.toString()) * BigInt("10") ** BigInt(decimals.toString());
+  };
+}
 
 describe("SwapLibrary library tests", function () {
   let _A;
