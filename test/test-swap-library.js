@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 const { expect } = require("chai");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { initCurrency, amountFunction, Protocols, buildUniswapConfig } = require("../utils/utils");
+const { initCurrency, amountFunction, Protocols, buildUniswapConfig } = require("../js/utils");
 
 const { ethers } = hre;
 const { ZeroAddress } = ethers;
