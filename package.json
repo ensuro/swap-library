@@ -1,6 +1,14 @@
 {
-  "name": "swaplibrary",
-  "version": "0.0.1",
+  "name": "@ensuro/swaplibrary",
+  "version": "%%VERSION%%",
+  "files": [
+    "**/*.sol",
+    "/build/contracts/*.json",
+    "/build/interfaces/*.json",
+    "/js/*.js",
+    "/scripts/*.sh",
+    "/scripts/*.js"
+  ],
   "scripts": {
     "prettier": "prettier --write 'contracts/**/*.sol' --write 'test/**/*.js'",
     "solhint": "solhint 'contracts/**/*.sol'",
