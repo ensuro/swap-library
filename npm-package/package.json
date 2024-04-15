@@ -3,8 +3,8 @@
   "version": "%%VERSION%%",
   "files": [
     "**/*.sol",
-    "/build",
-    "/contracts"
+    "/build/**/*.json",
+    "/js/*.js"
   ],
   "repository": {
     "type": "git",
