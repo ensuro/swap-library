@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 VERSION=$1
 shift
@@ -30,8 +30,11 @@ git archive --format tar HEAD README.md contracts/ | tar xv -C $TARGET_DIR
 mkdir $TARGET_DIR/build
 cp -r artifacts/contracts $TARGET_DIR/build
 
+mkdir $TARGET_DIR/js
+cp js/*.js $TARGET_DIR/js/
+
 find $TARGET_DIR -name "*.dbg.json" -delete
-sed "s/%%VERSION%%/$VERSION/" npm-package/package.json > "$TARGET_DIR/package.json"
+sed "s/%%VERSION%%/$VERSION/" package.json > "$TARGET_DIR/package.json"
 
 echo "
 
