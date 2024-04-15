@@ -3,7 +3,7 @@
   "version": "%%VERSION%%",
   "files": [
     "**/*.sol",
-    "/build/**/*.json",
+    "/build",
     "/js/*.js"
   ],
   "repository": {
