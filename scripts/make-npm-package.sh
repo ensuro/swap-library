@@ -31,7 +31,7 @@ mkdir $TARGET_DIR/build
 cp -r artifacts/contracts $TARGET_DIR/build
 
 find $TARGET_DIR -name "*.dbg.json" -delete
-sed "s/%%VERSION%%/$VERSION/" package.json > "$TARGET_DIR/package.json"
+sed "s/%%VERSION%%/$VERSION/" npm-package/package.json > "$TARGET_DIR/package.json"
 find $TARGET_DIR
 
 echo "

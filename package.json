@@ -1,13 +1,11 @@
 {
   "name": "@ensuro/swaplibrary",
+  "description": "Solidity Library that implements swap using different plaforms with a homogeneneous interface",
   "version": "%%VERSION%%",
   "files": [
     "**/*.sol",
-    "/build/contracts/*.json",
-    "/build/interfaces/*.json",
-    "/js/*.js",
-    "/scripts/*.sh",
-    "/scripts/*.js"
+    "/build",
+    "/js/*.js"
   ],
   "scripts": {
     "prettier": "prettier --write 'contracts/**/*.sol' --write 'test/**/*.js'",

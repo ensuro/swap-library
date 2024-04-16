@@ -1,5 +1,6 @@
 {
   "name": "@ensuro/swaplibrary",
+  "description": "Solidity Library that implements swap using different plaforms with a homogeneneous interface",
   "version": "%%VERSION%%",
   "files": [
     "**/*.sol",
