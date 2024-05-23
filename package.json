@@ -29,7 +29,8 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.2",
     "@openzeppelin/contracts-upgradeable": "^4.9.2",
-    "@uniswap/v3-periphery": "^1.4.4"
+    "@uniswap/v3-periphery": "^1.4.4",
+    "solidity-bytes-utils": "^0.8.0"
   },
   "repository": {
     "type": "git",
