@@ -24,7 +24,7 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
  */
 library CurveRoutes {
   using BytesLib for bytes;
-  uint256 internal constant ADDRESS_SIZE = 4;
+  uint256 internal constant ADDRESS_SIZE = 20;
   uint256 internal constant UINT8_SIZE = 1;
   uint256 internal constant MAX_SWAPS = 5;
 
@@ -71,11 +71,11 @@ library CurveRoutes {
     }
     offset += 1 + (nSwaps * 2 + 1) * ADDRESS_SIZE;
     for (uint256 i; i < nSwaps; i++) {
-      route.swapParams[i][0] = curveRoutes.toUint8(offset + i);
-      route.swapParams[i][1] = curveRoutes.toUint8(offset + i + 1);
-      route.swapParams[i][2] = curveRoutes.toUint8(offset + i + 2);
-      route.swapParams[i][3] = curveRoutes.toUint8(offset + i + 3);
-      route.swapParams[i][4] = curveRoutes.toUint8(offset + i + 4);
+      route.swapParams[i][0] = curveRoutes.toUint8(offset + i * UINT8_SIZE * 5);
+      route.swapParams[i][1] = curveRoutes.toUint8(offset + i * UINT8_SIZE * 5 + 1);
+      route.swapParams[i][2] = curveRoutes.toUint8(offset + i * UINT8_SIZE * 5 + 2);
+      route.swapParams[i][3] = curveRoutes.toUint8(offset + i * UINT8_SIZE * 5 + 3);
+      route.swapParams[i][4] = curveRoutes.toUint8(offset + i * UINT8_SIZE * 5 + 4);
     }
     offset += nSwaps * UINT8_SIZE * 5;
     for (uint256 i; i < nSwaps; i++) {
