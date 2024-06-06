@@ -147,7 +147,7 @@ library SwapLibrary {
     uint256 price
   ) internal returns (uint256) {
     UniswapCustomParams memory cp = abi.decode(swapConfig.customParams, (UniswapCustomParams));
-    uint256 amountInMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
+    uint256 amountOutMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
 
     IERC20Metadata(tokenIn).approve(address(cp.router), amount);
     ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
@@ -157,7 +157,7 @@ library SwapLibrary {
       recipient: address(this),
       deadline: block.timestamp,
       amountIn: amount,
-      amountOutMinimum: amountInMin,
+      amountOutMinimum: amountOutMin,
       sqrtPriceLimitX96: 0 // Since we're limiting the transfer amount, we don't need to worry about the price impact of the transaction
     });
 
@@ -168,7 +168,7 @@ library SwapLibrary {
       "SwapLibrary: something wrong, allowance should go back to 0"
     );
     // Sanity check
-    require(received >= amountInMin, "SwapLibrary: slippage greater than maxSlippage");
+    require(received >= amountOutMin, "SwapLibrary: slippage greater than maxSlippage");
     return received;
   }
 
