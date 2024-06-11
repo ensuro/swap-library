@@ -5,6 +5,7 @@ import {WadRayMath} from "./dependencies/WadRayMath.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {ICurveRouter} from "./dependencies/ICurveRouter.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {CurveRoutes} from "./CurveRoutes.sol";
 
 /**
@@ -214,14 +215,14 @@ library SwapLibrary {
       tokenIn,
       tokenOut
     );
-    uint256 amountInMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
+    uint256 amountOutMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
 
     IERC20Metadata(tokenIn).approve(address(router), amount);
     uint256 received = router.exchange(
       route.route,
       route.swapParams,
       amount,
-      amountInMin,
+      amountOutMin,
       route.pools,
       address(this)
     );
@@ -231,8 +232,24 @@ library SwapLibrary {
       "SwapLibrary: something wrong, allowance should go back to 0"
     );
     // Sanity check
-    require(received >= amountInMin, "SwapLibrary: slippage greater than maxSlippage");
+    require(received >= amountOutMin, "SwapLibrary: slippage greater than maxSlippage");
     return received;
+  }
+
+  function _exchangeCurve(
+    ICurveRouter router,
+    CurveRoutes.CurveRoute memory route,
+    uint256 amount
+  ) internal returns (uint256 received, uint256 amountInActual) {
+    amountInActual = router.get_dx(route.route, route.swapParams, amount, route.pools);
+    received = router.exchange(
+      route.route,
+      route.swapParams,
+      amountInActual,
+      0, // I don't verify here, but anyway the token approval defines the limit
+      route.pools,
+      address(this)
+    );
   }
 
   function _exactOutputCurve(
@@ -247,24 +264,19 @@ library SwapLibrary {
       tokenIn,
       tokenOut
     );
+    require(route.route[0] == tokenIn, "sdsdf");
+    require(route.route[4] == tokenOut, "sdsdf");
     uint256 amountInMax = _calcMaxAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
-    uint256 amountInActual = router.get_dx(route.route, route.swapParams, amount, route.pools);
-    require(amountInActual <= amountInMax, "SwapLibrary: slippage greater than maxSlippage");
-    IERC20Metadata(tokenIn).approve(address(router), amountInActual);
-    uint256 received = router.exchange(
-      route.route,
-      route.swapParams,
-      amountInActual,
-      amount,
-      route.pools,
-      address(this)
-    );
-    require(received == amount, "SwapLibrary: something wrong, we should have received amount");
+    IERC20Metadata(tokenIn).approve(address(router), amountInMax);
+    uint256 amountInConsumed = 0;
 
-    require(
-      IERC20Metadata(tokenIn).allowance(address(this), address(router)) == 0,
-      "SwapLibrary: something wrong, allowance should go back to 0"
-    );
-    return amountInActual;
+    // Walkaround because get_dx isn't reliable
+    do {
+      (uint256 amountInActual, uint256 received) = _exchangeCurve(router, route, amount);
+      amount -= Math.min(amount, received);
+      amountInConsumed += amountInActual;
+    } while (amount != 0);
+    IERC20Metadata(tokenIn).approve(address(router), 0);
+    return amountInConsumed;
   }
 }

@@ -159,12 +159,20 @@ variants.forEach((variant) => {
       usdc = await currency.balanceOf(swapTesterMock);
       native = await nativeUSDC.balanceOf(swapTesterMock);
 
-      // DOESN'T WORK on CURVE
-      // await expect(
-      //   swapTesterMock.executeExactOutput(swapConfig, nativeUSDC.target, currency.target, _A(10), _W("1"))
-      // ).to.emit(swapTesterMock, "ExactOutputResult");
-      // expect(await currency.balanceOf(swapTesterMock)).to.equal(usdc + _A(10));
-      // expect(await nativeUSDC.balanceOf(swapTesterMock)).to.closeTo(native - _A(10), _A("0.02"));
+      await expect(
+        swapTesterMock.executeExactOutput(swapConfig, nativeUSDC.target, currency.target, _A(10), _W("1"))
+      ).to.emit(swapTesterMock, "ExactOutputResult");
+      expect(await currency.balanceOf(swapTesterMock)).to.closeTo(usdc + _A(10), _A("0.001"));
+      expect(await nativeUSDC.balanceOf(swapTesterMock)).to.closeTo(native - _A(10), _A("0.02"));
+
+      usdc = await currency.balanceOf(swapTesterMock);
+      native = await nativeUSDC.balanceOf(swapTesterMock);
+
+      await expect(
+        swapTesterMock.executeExactOutput(swapConfig, currency.target, nativeUSDC.target, _A(10), _W("1"))
+      ).to.emit(swapTesterMock, "ExactOutputResult");
+      expect(await nativeUSDC.balanceOf(swapTesterMock)).to.closeTo(native + _A(10), _A("0.001"));
+      expect(await currency.balanceOf(swapTesterMock)).to.closeTo(usdc - _A(10), _A("0.02"));
     });
   });
 });
