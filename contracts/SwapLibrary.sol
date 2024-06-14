@@ -16,6 +16,9 @@ import {CurveRoutes} from "./CurveRoutes.sol";
 library SwapLibrary {
   using WadRayMath for uint256;
 
+  // Limit on the number of exchanges done by the exactOutput curve workaround
+  uint256 internal constant MAX_EXCHANGE = 2;
+
   /**
    * @dev Enum with the different protocols
    */
@@ -209,7 +212,7 @@ library SwapLibrary {
     address tokenOut,
     uint256 amount,
     uint256 price
-  ) internal returns (uint256) {
+  ) internal returns (uint256 received) {
     (ICurveRouter router, CurveRoutes.CurveRoute memory route) = CurveRoutes.findRoute(
       swapConfig.customParams,
       tokenIn,
@@ -218,7 +221,7 @@ library SwapLibrary {
     uint256 amountOutMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
 
     IERC20Metadata(tokenIn).approve(address(router), amount);
-    uint256 received = router.exchange(
+    received = router.exchange(
       route.route,
       route.swapParams,
       amount,
@@ -264,18 +267,16 @@ library SwapLibrary {
       tokenIn,
       tokenOut
     );
-    require(route.route[0] == tokenIn, "sdsdf");
-    require(route.route[4] == tokenOut, "sdsdf");
     uint256 amountInMax = _calcMaxAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
     IERC20Metadata(tokenIn).approve(address(router), amountInMax);
     uint256 amountInConsumed = 0;
 
-    // Walkaround because get_dx isn't reliable
-    do {
-      (uint256 amountInActual, uint256 received) = _exchangeCurve(router, route, amount);
+    // Walkaround because get_dx isn't reliable - Does up to MAX_EXCHANGE to aproximate as much as possible
+    for (uint256 i; amount != 0 && i < MAX_EXCHANGE; i++) {
+      (uint256 received, uint256 amountInActual) = _exchangeCurve(router, route, amount);
       amount -= Math.min(amount, received);
       amountInConsumed += amountInActual;
-    } while (amount != 0);
+    }
     IERC20Metadata(tokenIn).approve(address(router), 0);
     return amountInConsumed;
   }

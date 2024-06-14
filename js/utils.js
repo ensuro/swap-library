@@ -25,6 +25,18 @@ function buildUniswapConfig(slippage, feeTier, router) {
  *               You don't need to fill with zeros at the end
  */
 function buildCurveConfig(slippage, curveRouter, routes) {
+  const encodeStream = curveCustomParams(curveRouter, routes);
+  return [
+    Protocols.curveRouter,
+    slippage,
+    ethers.solidityPacked(
+      encodeStream.map((x) => x.type),
+      encodeStream.map((x) => x.value)
+    ),
+  ];
+}
+
+function curveCustomParams(curveRouter, routes) {
   const encodeStream = [
     { type: "address", value: curveRouter },
     { type: "uint8", value: routes.length },
@@ -48,18 +60,12 @@ function buildCurveConfig(slippage, curveRouter, routes) {
     ].flat();
   });
   encodedRoutes.forEach((er) => encodeStream.push(...er));
-  return [
-    Protocols.curveRouter,
-    slippage,
-    ethers.solidityPacked(
-      encodeStream.map((x) => x.type),
-      encodeStream.map((x) => x.value)
-    ),
-  ];
+  return encodeStream;
 }
 
 module.exports = {
   Protocols,
   buildUniswapConfig,
   buildCurveConfig,
+  curveCustomParams, // Useful for tests
 };

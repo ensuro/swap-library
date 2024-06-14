@@ -2,13 +2,13 @@ const hre = require("hardhat");
 const { ethers } = hre;
 
 const { expect } = require("chai");
-const { buildUniswapConfig, buildCurveConfig, Protocols } = require("../js/utils");
+const { buildUniswapConfig, buildCurveConfig, Protocols, curveCustomParams } = require("../js/utils");
 const { _W } = require("../js/test-utils");
 const { ZeroAddress } = ethers;
 
-const RND_ADDR = Array(10)
+const RND_ADDR = Array(15)
   .fill(0)
-  .map((x) => ethers.Wallet.createRandom().address);
+  .map(() => ethers.Wallet.createRandom().address);
 
 // Sizes of each type encoded as hexadecimal
 const ADDR_SIZE = 40;
@@ -92,12 +92,61 @@ describe("Test CurveRoutes library", function () {
     mock = await CurveRoutesTesterMock.deploy();
   });
 
-  it("CurveRoutes validation", async () => {
+  it("Checks curveRoutes validates the config", async () => {
     let routes = [{ route: RND_ADDR.slice(0, 3), swapParams: [[1, 2, 3, 4, 5]] }];
     let swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
-    await mock.validate(swapConfig[2]);
+    await expect(mock.validate(swapConfig[2])).not.to.be.reverted;
+
     swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], []);
     await expect(mock.validate(swapConfig[2])).to.be.revertedWithCustomError(mock, "AtLeastOneRoute");
+
+    swapConfig = buildCurveConfig(_W("0.01"), ZeroAddress, routes);
+    await expect(mock.validate(swapConfig[2])).to.be.revertedWithCustomError(mock, "CurveRouterCantBeZero");
+
+    // First of each pair
+    routes[0].route[1] = ZeroAddress;
+    swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
+    await expect(mock.validate(swapConfig[2])).to.be.revertedWithCustomError(mock, "InvalidRoute");
+
+    // 2nd of each pair
+    routes[0].route[0] = ZeroAddress;
+    routes[0].route[1] = RND_ADDR[1];
+    swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
+    await expect(mock.validate(swapConfig[2])).to.be.revertedWithCustomError(mock, "InvalidRoute");
+
+    // Last
+    routes = [{ route: RND_ADDR.slice(0, 3), swapParams: [[1, 2, 3, 4, 5]] }];
+    routes[0].route[2] = ZeroAddress;
+    swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
+    await expect(mock.validate(swapConfig[2])).to.be.revertedWithCustomError(mock, "InvalidRoute");
+
+    // 5 swaps OK
+    routes = [{ route: RND_ADDR.slice(0, 11), swapParams: Array(5).fill([1, 2, 3, 4, 5]) }];
+    swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
+    await expect(mock.validate(swapConfig[2])).not.to.be.reverted;
+
+    // More than 5 swaps
+    routes = [{ route: RND_ADDR.slice(0, 13), swapParams: Array(6).fill([1, 2, 3, 4, 5]) }];
+    swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
+    await expect(mock.validate(swapConfig[2])).to.be.revertedWithCustomError(mock, "TooManySwaps");
+  });
+
+  it("Checks curveRoutes validates even if an error in the input", async () => {
+    let routes = [{ route: RND_ADDR.slice(0, 5), swapParams: Array(2).fill([1, 2, 3, 4, 5]) }];
+    let encodedStream = curveCustomParams(ZeroAddress, routes);
+
+    function encode(stream) {
+      return ethers.solidityPacked(
+        stream.map((x) => x.type),
+        stream.map((x) => x.value)
+      );
+    }
+    await expect(mock.validate(encode(encodedStream))).to.be.revertedWithCustomError(mock, "CurveRouterCantBeZero");
+
+    encodedStream = curveCustomParams(RND_ADDR[0], routes);
+    // Manipulate number of swaps param
+    encodedStream[2].value = 1;
+    await expect(mock.validate(encode(encodedStream))).to.be.revertedWithCustomError(mock, "InvalidLength");
   });
 
   it("CurveRoutes findRoute finds routes", async () => {
@@ -143,5 +192,11 @@ describe("Test CurveRoutes library", function () {
     );
     expect(pools).to.be.deep.equal(Array(5).fill(ZeroAddress));
     expect(router).to.be.equal(RND_ADDR[9]);
+
+    // Checks non existent route
+    await expect(mock.findRoute(swapConfig[2], RND_ADDR[2], RND_ADDR[0])).to.be.revertedWithCustomError(
+      mock,
+      "RouteNotFound"
+    );
   });
 });
