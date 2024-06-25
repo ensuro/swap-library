@@ -271,7 +271,7 @@ library SwapLibrary {
     IERC20Metadata(tokenIn).approve(address(router), amountInMax);
     uint256 amountInConsumed = 0;
 
-    // Walkaround because get_dx isn't reliable - Does up to MAX_EXCHANGE to aproximate as much as possible
+    // Workaround because get_dx isn't reliable - Does up to MAX_EXCHANGE to aproximate as much as possible
     for (uint256 i; amount != 0 && i < MAX_EXCHANGE; i++) {
       (uint256 received, uint256 amountInActual) = _exchangeCurve(router, route, amount);
       amount -= Math.min(amount, received);

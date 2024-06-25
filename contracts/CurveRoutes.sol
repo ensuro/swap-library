@@ -5,7 +5,7 @@ import {ICurveRouter} from "./dependencies/ICurveRouter.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 /**
- * @title Library to access a set of curve routes stored as tighly packed bytes
+ * @title Library to access a set of curve routes stored as tightly packed bytes
  *
  * @dev The format is a concatenation of bytes, packed (ethers.solidityPack in js) with the following fields
  *
@@ -27,11 +27,18 @@ library CurveRoutes {
   uint256 internal constant ADDRESS_SIZE = 20;
   uint256 internal constant UINT8_SIZE = 1;
   uint256 internal constant MAX_SWAPS = 5;
+  uint256 internal constant ROUTER_OFFSET = 0;
+  uint256 internal constant N_ROUTES_OFFSET = ROUTER_OFFSET + ADDRESS_SIZE;
+  uint256 internal constant ROUTES_BASE_OFFSET = N_ROUTES_OFFSET + UINT8_SIZE;
 
   struct CurveRoute {
     address[11] route;
-    uint256[5][5] swapParams;
-    address[5] pools;
+    /**
+     * For each swap array of [i, j, swap type, pool_type, n_coins]
+     * See https://github.com/curvefi/curve-router-ng/blob/master/contracts/Router.vy#L514C1-L531C63
+     */
+    uint256[MAX_SWAPS][5] swapParams;
+    address[MAX_SWAPS] pools;
   }
 
   error CurveRouterCantBeZero();
@@ -42,11 +49,11 @@ library CurveRoutes {
   error RouteNotFound(address tokenIn, address tokenOut);
 
   function validate(bytes memory curveRoutes) internal pure {
-    ICurveRouter router = ICurveRouter(curveRoutes.toAddress(0));
+    ICurveRouter router = ICurveRouter(curveRoutes.toAddress(ROUTER_OFFSET));
     if (address(router) == address(0)) revert CurveRouterCantBeZero();
-    uint8 nRoutes = curveRoutes.toUint8(ADDRESS_SIZE);
+    uint8 nRoutes = curveRoutes.toUint8(N_ROUTES_OFFSET);
     if (nRoutes == 0) revert AtLeastOneRoute();
-    uint256 offset = ADDRESS_SIZE + UINT8_SIZE;
+    uint256 offset = ROUTES_BASE_OFFSET;
     for (uint256 i; i < nRoutes; i++) {
       (uint8 nSwaps, CurveRoute memory route) = readRoute(curveRoutes, offset);
       for (uint256 j; j < nSwaps; j++) {
@@ -54,7 +61,8 @@ library CurveRoutes {
           revert InvalidRoute(route);
       }
       if (route.route[nSwaps * 2] == address(0)) revert InvalidRoute(route);
-      if (nSwaps != 5 && route.route[nSwaps * 2 + 1] != address(0)) revert InvalidRoute(route);
+      if (nSwaps != MAX_SWAPS && route.route[_routeLen(nSwaps)] != address(0))
+        revert InvalidRoute(route);
       offset += routeSize(nSwaps);
     }
     if (curveRoutes.length != offset) revert InvalidLength();
@@ -66,10 +74,10 @@ library CurveRoutes {
   ) internal pure returns (uint8 nSwaps, CurveRoute memory route) {
     nSwaps = curveRoutes.toUint8(offset);
     if (nSwaps > MAX_SWAPS) revert TooManySwaps(nSwaps);
-    for (uint256 i; i < (nSwaps * 2 + 1); i++) {
-      route.route[i] = curveRoutes.toAddress(offset + 1 + i * ADDRESS_SIZE);
+    for (uint256 i; i < _routeLen(nSwaps); i++) {
+      route.route[i] = curveRoutes.toAddress(offset + UINT8_SIZE + i * ADDRESS_SIZE);
     }
-    offset += 1 + (nSwaps * 2 + 1) * ADDRESS_SIZE;
+    offset += UINT8_SIZE + _routeLen(nSwaps) * ADDRESS_SIZE;
     for (uint256 i; i < nSwaps; i++) {
       route.swapParams[i][0] = curveRoutes.toUint8(offset + i * UINT8_SIZE * 5);
       route.swapParams[i][1] = curveRoutes.toUint8(offset + i * UINT8_SIZE * 5 + 1);
@@ -86,10 +94,14 @@ library CurveRoutes {
   function routeSize(uint8 nSwaps) internal pure returns (uint256) {
     return
       UINT8_SIZE + // nSwaps
-      (nSwaps * 2 + 1) *
+      _routeLen(nSwaps) *
       ADDRESS_SIZE + // route
       (nSwaps * 5 * UINT8_SIZE) + // swapParams
       (nSwaps * ADDRESS_SIZE); // pools
+  }
+
+  function _routeLen(uint8 nSwaps) private pure returns (uint256) {
+    return (nSwaps * 2 + 1);
   }
 
   function findRoute(
@@ -97,9 +109,9 @@ library CurveRoutes {
     address tokenIn,
     address tokenOut
   ) internal pure returns (ICurveRouter router, CurveRoute memory route) {
-    router = ICurveRouter(curveRoutes.toAddress(0));
-    uint8 nRoutes = curveRoutes.toUint8(ADDRESS_SIZE);
-    uint256 offset = ADDRESS_SIZE + UINT8_SIZE;
+    router = ICurveRouter(curveRoutes.toAddress(ROUTER_OFFSET));
+    uint8 nRoutes = curveRoutes.toUint8(N_ROUTES_OFFSET);
+    uint256 offset = ROUTES_BASE_OFFSET;
     for (uint256 i; i < nRoutes; i++) {
       uint8 nSwaps = curveRoutes.toUint8(offset);
       if (
