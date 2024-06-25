@@ -3,7 +3,10 @@ pragma solidity ^0.8.0;
 
 import {WadRayMath} from "./dependencies/WadRayMath.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {ICurveRouter} from "./dependencies/ICurveRouter.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {CurveRoutes} from "./CurveRoutes.sol";
 
 /**
  * @title Swap Library
@@ -13,12 +16,16 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 library SwapLibrary {
   using WadRayMath for uint256;
 
+  // Limit on the number of exchanges done by the exactOutput curve workaround
+  uint256 internal constant MAX_EXCHANGE = 2;
+
   /**
    * @dev Enum with the different protocols
    */
   enum SwapProtocol {
     undefined,
-    uniswap
+    uniswap,
+    curveRouter
   }
 
   struct SwapConfig {
@@ -38,6 +45,8 @@ library SwapLibrary {
       UniswapCustomParams memory cp = abi.decode(swapConfig.customParams, (UniswapCustomParams));
       require(address(cp.router) != address(0), "SwapLibrary: SwapRouter address cannot be zero");
       require(cp.feeTier > 0, "SwapLibrary: feeTier cannot be zero");
+    } else if (swapConfig.protocol == SwapProtocol.curveRouter) {
+      CurveRoutes.validate(swapConfig.customParams);
     } else revert("SwapLibrary: invalid protocol");
   }
 
@@ -71,6 +80,8 @@ library SwapLibrary {
   ) external returns (uint256) {
     if (swapConfig.protocol == SwapProtocol.uniswap) {
       return _exactInputUniswap(swapConfig, tokenIn, tokenOut, amount, price);
+    } else if (swapConfig.protocol == SwapProtocol.curveRouter) {
+      return _exactInputCurve(swapConfig, tokenIn, tokenOut, amount, price);
     }
     return 0;
   }
@@ -102,8 +113,34 @@ library SwapLibrary {
   ) external returns (uint256) {
     if (swapConfig.protocol == SwapProtocol.uniswap) {
       return _exactOutputUniswap(swapConfig, tokenIn, tokenOut, amount, price);
+    } else if (swapConfig.protocol == SwapProtocol.curveRouter) {
+      return _exactOutputCurve(swapConfig, tokenIn, tokenOut, amount, price);
     }
     return 0;
+  }
+
+  function _calcMinAmount(
+    uint256 amount,
+    uint256 maxSlippage,
+    address tokenIn,
+    address tokenOut,
+    uint256 price
+  ) internal view returns (uint256) {
+    return
+      (amount * _toWadFactor(tokenIn)).wadDiv(price).wadMul(WadRayMath.WAD - maxSlippage) /
+      _toWadFactor(tokenOut);
+  }
+
+  function _calcMaxAmount(
+    uint256 amount,
+    uint256 maxSlippage,
+    address tokenIn,
+    address tokenOut,
+    uint256 price
+  ) internal view returns (uint256) {
+    return
+      (amount * _toWadFactor(tokenOut)).wadMul(price).wadMul(WadRayMath.WAD + maxSlippage) /
+      _toWadFactor(tokenIn);
   }
 
   function _exactInputUniswap(
@@ -114,9 +151,7 @@ library SwapLibrary {
     uint256 price
   ) internal returns (uint256) {
     UniswapCustomParams memory cp = abi.decode(swapConfig.customParams, (UniswapCustomParams));
-    uint256 amountInMin = (amount * _toWadFactor(tokenIn)).wadDiv(price).wadMul(
-      WadRayMath.WAD - swapConfig.maxSlippage
-    ) / _toWadFactor(tokenOut);
+    uint256 amountOutMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
 
     IERC20Metadata(tokenIn).approve(address(cp.router), amount);
     ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
@@ -126,7 +161,7 @@ library SwapLibrary {
       recipient: address(this),
       deadline: block.timestamp,
       amountIn: amount,
-      amountOutMinimum: amountInMin,
+      amountOutMinimum: amountOutMin,
       sqrtPriceLimitX96: 0 // Since we're limiting the transfer amount, we don't need to worry about the price impact of the transaction
     });
 
@@ -137,7 +172,7 @@ library SwapLibrary {
       "SwapLibrary: something wrong, allowance should go back to 0"
     );
     // Sanity check
-    require(received >= amountInMin, "SwapLibrary: slippage greater than maxSlippage");
+    require(received >= amountOutMin, "SwapLibrary: slippage greater than maxSlippage");
     return received;
   }
 
@@ -150,9 +185,7 @@ library SwapLibrary {
   ) internal returns (uint256) {
     UniswapCustomParams memory cp = abi.decode(swapConfig.customParams, (UniswapCustomParams));
 
-    uint256 amountInMax = (amount * _toWadFactor(tokenOut)).wadMul(price).wadMul(
-      WadRayMath.WAD + swapConfig.maxSlippage
-    ) / _toWadFactor(tokenIn);
+    uint256 amountInMax = _calcMaxAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
 
     IERC20Metadata(tokenIn).approve(address(cp.router), type(uint256).max);
     ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
@@ -171,5 +204,80 @@ library SwapLibrary {
     // Sanity check
     require(actualAmount <= amountInMax, "SwapLibrary: exchange rate higher than tolerable");
     return actualAmount;
+  }
+
+  function _exactInputCurve(
+    SwapConfig calldata swapConfig,
+    address tokenIn,
+    address tokenOut,
+    uint256 amount,
+    uint256 price
+  ) internal returns (uint256 received) {
+    (ICurveRouter router, CurveRoutes.CurveRoute memory route) = CurveRoutes.findRoute(
+      swapConfig.customParams,
+      tokenIn,
+      tokenOut
+    );
+    uint256 amountOutMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
+
+    IERC20Metadata(tokenIn).approve(address(router), amount);
+    received = router.exchange(
+      route.route,
+      route.swapParams,
+      amount,
+      amountOutMin,
+      route.pools,
+      address(this)
+    );
+
+    require(
+      IERC20Metadata(tokenIn).allowance(address(this), address(router)) == 0,
+      "SwapLibrary: something wrong, allowance should go back to 0"
+    );
+    // Sanity check
+    require(received >= amountOutMin, "SwapLibrary: slippage greater than maxSlippage");
+    return received;
+  }
+
+  function _exchangeCurve(
+    ICurveRouter router,
+    CurveRoutes.CurveRoute memory route,
+    uint256 amount
+  ) internal returns (uint256 received, uint256 amountInActual) {
+    amountInActual = router.get_dx(route.route, route.swapParams, amount, route.pools);
+    received = router.exchange(
+      route.route,
+      route.swapParams,
+      amountInActual,
+      0, // I don't verify here, but anyway the token approval defines the limit
+      route.pools,
+      address(this)
+    );
+  }
+
+  function _exactOutputCurve(
+    SwapConfig calldata swapConfig,
+    address tokenIn,
+    address tokenOut,
+    uint256 amount,
+    uint256 price
+  ) internal returns (uint256) {
+    (ICurveRouter router, CurveRoutes.CurveRoute memory route) = CurveRoutes.findRoute(
+      swapConfig.customParams,
+      tokenIn,
+      tokenOut
+    );
+    uint256 amountInMax = _calcMaxAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
+    IERC20Metadata(tokenIn).approve(address(router), amountInMax);
+    uint256 amountInConsumed = 0;
+
+    // Workaround because get_dx isn't reliable - Does up to MAX_EXCHANGE to aproximate as much as possible
+    for (uint256 i; amount != 0 && i < MAX_EXCHANGE; i++) {
+      (uint256 received, uint256 amountInActual) = _exchangeCurve(router, route, amount);
+      amount -= Math.min(amount, received);
+      amountInConsumed += amountInActual;
+    }
+    IERC20Metadata(tokenIn).approve(address(router), 0);
+    return amountInConsumed;
   }
 }
