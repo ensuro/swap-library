@@ -39,15 +39,23 @@ library SwapLibrary {
     ISwapRouter router;
   }
 
+  error InvalidProtocol();
+  error MaxSlippageCannotBeZero();
+  error UniswapRouterCannotBeZero();
+  error UniswapFeeTierCannotBeZero();
+  error AllowanceShouldGoBackToZero();
+  error ReceivedLessThanAcceptable(uint256 received, uint256 amountOutMin);
+  error SpentMoreThanAcceptable(uint256 spent, uint256 amountInMax);
+
   function validate(SwapConfig calldata swapConfig) external pure {
-    require(swapConfig.maxSlippage > 0, "SwapLibrary: maxSlippage cannot be zero");
+    if (swapConfig.maxSlippage == 0) revert MaxSlippageCannotBeZero();
     if (swapConfig.protocol == SwapProtocol.uniswap) {
       UniswapCustomParams memory cp = abi.decode(swapConfig.customParams, (UniswapCustomParams));
-      require(address(cp.router) != address(0), "SwapLibrary: SwapRouter address cannot be zero");
-      require(cp.feeTier > 0, "SwapLibrary: feeTier cannot be zero");
+      if (address(cp.router) == address(0)) revert UniswapRouterCannotBeZero();
+      if (cp.feeTier == 0) revert UniswapFeeTierCannotBeZero();
     } else if (swapConfig.protocol == SwapProtocol.curveRouter) {
       CurveRoutes.validate(swapConfig.customParams);
-    } else revert("SwapLibrary: invalid protocol");
+    } else revert InvalidProtocol();
   }
 
   function _toWadFactor(address token) internal view returns (uint256) {
@@ -166,13 +174,10 @@ library SwapLibrary {
     });
 
     uint256 received = cp.router.exactInputSingle(params);
-
-    require(
-      IERC20Metadata(tokenIn).allowance(address(this), address(cp.router)) == 0,
-      "SwapLibrary: something wrong, allowance should go back to 0"
-    );
+    if (IERC20Metadata(tokenIn).allowance(address(this), address(cp.router)) != 0)
+      revert AllowanceShouldGoBackToZero();
     // Sanity check
-    require(received >= amountOutMin, "SwapLibrary: slippage greater than maxSlippage");
+    if (received < amountOutMin) revert ReceivedLessThanAcceptable(received, amountOutMin);
     return received;
   }
 
@@ -202,7 +207,7 @@ library SwapLibrary {
 
     IERC20Metadata(tokenIn).approve(address(cp.router), 0);
     // Sanity check
-    require(actualAmount <= amountInMax, "SwapLibrary: exchange rate higher than tolerable");
+    if (actualAmount > amountInMax) revert SpentMoreThanAcceptable(actualAmount, amountInMax);
     return actualAmount;
   }
 
@@ -230,12 +235,10 @@ library SwapLibrary {
       address(this)
     );
 
-    require(
-      IERC20Metadata(tokenIn).allowance(address(this), address(router)) == 0,
-      "SwapLibrary: something wrong, allowance should go back to 0"
-    );
+    if (IERC20Metadata(tokenIn).allowance(address(this), address(router)) != 0)
+      revert AllowanceShouldGoBackToZero();
     // Sanity check
-    require(received >= amountOutMin, "SwapLibrary: slippage greater than maxSlippage");
+    if (received < amountOutMin) revert ReceivedLessThanAcceptable(received, amountOutMin);
     return received;
   }
 

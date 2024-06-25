@@ -16,6 +16,7 @@ contract SwapRouterMock is ISwapRouter {
   using WadRayMath for uint256;
   using SafeCast for uint256;
 
+  error NotImplemented();
   event PriceUpdated(address tokenIn, address tokenOut, uint256 price);
 
   mapping(address => mapping(address => uint256)) private _prices;
@@ -91,7 +92,7 @@ contract SwapRouterMock is ISwapRouter {
    * @notice This function is not implemented
    */
   function exactOutput(ExactOutputParams calldata) external payable returns (uint256) {
-    revert("Not implemented");
+    revert NotImplemented();
   }
 
   /**
@@ -99,13 +100,13 @@ contract SwapRouterMock is ISwapRouter {
    * @notice This function is not implemented
    */
   function exactInput(ExactInputParams calldata) external payable returns (uint256) {
-    revert("Not implemented");
+    revert NotImplemented();
   }
 
   /**
    * @notice This function is not implemented
    */
   function uniswapV3SwapCallback(int256, int256, bytes calldata) external pure {
-    revert("Not implemented");
+    revert NotImplemented();
   }
 }

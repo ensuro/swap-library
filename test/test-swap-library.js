@@ -51,28 +51,33 @@ describe("SwapLibrary library tests", function () {
   }
 
   it("SwapLibrary validations", async () => {
-    const { currency, wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
+    const { currency, wmatic, swapRouter, swapTesterMock, library } = await helpers.loadFixture(deployFixture);
 
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.62"));
 
     // Slippage cannot be 0
     let swapConfig = buildUniswapConfig(_W(0), _A("0.0005"), swapRouter.target);
-    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith(
-      "SwapLibrary: maxSlippage cannot be zero"
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWithCustomError(
+      library,
+      "MaxSlippageCannotBeZero"
     );
 
     // Invalid protocol
     swapConfig = [Protocols.undefined, _W("0.02"), "0x00"];
-    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith("SwapLibrary: invalid protocol");
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWithCustomError(library, "InvalidProtocol");
 
     // Fee tier cannot be 0
     swapConfig = buildUniswapConfig(_W("0.02"), _A(0), swapRouter.target);
-    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith("SwapLibrary: feeTier cannot be zero");
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWithCustomError(
+      library,
+      "UniswapFeeTierCannotBeZero"
+    );
 
     // SwapRouter cannot be ZeroAddress
     swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), ZeroAddress);
-    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWith(
-      "SwapLibrary: SwapRouter address cannot be zero"
+    await expect(swapTesterMock.validateConfig(swapConfig)).to.be.revertedWithCustomError(
+      library,
+      "UniswapRouterCannotBeZero"
     );
   });
 
