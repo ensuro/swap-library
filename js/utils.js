@@ -1,5 +1,4 @@
-const hre = require("hardhat");
-const { ethers } = hre;
+const ethers = require("ethers");
 const { ZeroAddress } = ethers;
 
 // enum
