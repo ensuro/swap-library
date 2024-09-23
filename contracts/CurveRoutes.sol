@@ -57,12 +57,10 @@ library CurveRoutes {
     for (uint256 i; i < nRoutes; i++) {
       (uint8 nSwaps, CurveRoute memory route) = readRoute(curveRoutes, offset);
       for (uint256 j; j < nSwaps; j++) {
-        if (route.route[j * 2] == address(0) || route.route[j * 2 + 1] == address(0))
-          revert InvalidRoute(route);
+        if (route.route[j * 2] == address(0) || route.route[j * 2 + 1] == address(0)) revert InvalidRoute(route);
       }
       if (route.route[nSwaps * 2] == address(0)) revert InvalidRoute(route);
-      if (nSwaps != MAX_SWAPS && route.route[_routeLen(nSwaps)] != address(0))
-        revert InvalidRoute(route);
+      if (nSwaps != MAX_SWAPS && route.route[_routeLen(nSwaps)] != address(0)) revert InvalidRoute(route);
       offset += routeSize(nSwaps);
     }
     if (curveRoutes.length != offset) revert InvalidLength();
