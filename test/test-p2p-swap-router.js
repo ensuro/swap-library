@@ -43,7 +43,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         return { usdc, usdcNative, p2pSwapRouter };
     }
 
-    it("Debe permitir un swap exitoso con exactInputSingle", async function () {
+    it("Should allow a successful swap with exactInputSingle", async function () {
         await setUp();
         const { usdc, usdcNative, p2pSwapRouter } = await helpers.loadFixture(deployFixture);
         await p2pSwapRouter.connect(lp).setCurrentPrice(usdcNative, usdc,_W("1"));
@@ -67,7 +67,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         expect(usdcBalanceAfter).to.equal(_A(900));
     });
 
-    it("Debe permitir un swap exitoso con exactOutputSingle", async function () {
+    it("Should allow a successful swap with exactOutputSingle", async function () {
         await setUp();
         const { usdc, usdcNative, p2pSwapRouter } = await helpers.loadFixture(deployFixture);
       
