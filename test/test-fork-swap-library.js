@@ -175,6 +175,33 @@ const variants = [
     },
     invalidSwapConfig: buildCurveConfig(_W("0.01"), ZeroAddress, []),
   },
+  {
+    name: "P2PSwapRouter",
+    tagit: tagit,
+    fixture: async () => {
+      const ret = await setUp();
+      const { lp, admin, swapTesterMock, currency } = ret;
+      const usdcNative = await ethers.getContractAt("IERC20", ADDRESSES.USDC_NATIVE);
+      const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
+      const swapRouter = await P2PSwapRouter.deploy(lp, admin);
+
+      const PRICER_ROLE = await swapRouter.PRICER_ROLE();
+      await swapRouter.connect(admin).grantRole(PRICER_ROLE, lp);
+
+      const SWAP_ROLE = await swapRouter.SWAP_ROLE();
+      await swapRouter.connect(admin).grantRole(SWAP_ROLE, swapTesterMock);
+
+      await swapRouter.connect(lp).setCurrentPrice(ADDRESSES.USDC, ADDRESSES.USDC_NATIVE, _W("1"));
+
+      await currency.connect(lp).approve(swapRouter, _A(1000));
+      await usdcNative.connect(lp).approve(swapRouter, _A(10000));
+
+      ret.swapConfig = buildUniswapConfig(_W("0.02"), 100, swapRouter.target);
+
+      return ret;
+    },
+    invalidSwapConfig: buildUniswapConfig(_W("0.02"), 0, ADDRESSES.UNISWAP),
+  }
 ];
 
 variants.forEach((variant) => {
