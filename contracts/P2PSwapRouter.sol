@@ -40,6 +40,10 @@ contract P2PSwapRouter is ISwapRouter, AccessControl {
     emit OnBehalfOfChanged(onBehalfOf);
   }
 
+  function getOnBehalfOf() external view returns (address) {
+    return _onBehalfOf;
+  }
+
   function _toWadFactor(address token) internal view returns (uint256) {
     return (10 ** (18 - IERC20Metadata(token).decimals()));
   }
@@ -90,6 +94,10 @@ contract P2PSwapRouter is ISwapRouter, AccessControl {
     require(tokenOut != address(0), "P2PSwapRouter: tokenOut cannot be the zero address");
     _prices[tokenIn][tokenOut] = price_;
     emit PriceUpdated(tokenIn, tokenOut, price_);
+  }
+
+  function getCurrentPrice(address tokenIn, address tokenOut) external view returns (uint256) {
+    return _prices[tokenIn][tokenOut];
   }
 
   function setOnBehalfOf(address onBehalfOf) external onlyRole(ADMIN_ROLE) {

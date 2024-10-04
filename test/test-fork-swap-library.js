@@ -182,13 +182,8 @@ const variants = [
     fixture: async () => {
       const ret = await setUp();
       const { lp, admin, swapTesterMock, currency } = ret;
-      const usdcNative = await initForkCurrency(
-        ADDRESSES.USDC_NATIVE,
-        ADDRESSES.USDCNativeWhale,
-        [lp],
-        [_A(INITIAL)]
-      );
-      
+      const usdcNative = await initForkCurrency(ADDRESSES.USDC_NATIVE, ADDRESSES.USDCNativeWhale, [lp], [_A(INITIAL)]);
+
       const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
       const swapRouter = await P2PSwapRouter.deploy(lp, admin);
 
@@ -209,7 +204,7 @@ const variants = [
       return ret;
     },
     invalidSwapConfig: buildUniswapConfig(_W("0.02"), 0, ADDRESSES.UNISWAP),
-  }
+  },
 ];
 
 variants.forEach((variant) => {
