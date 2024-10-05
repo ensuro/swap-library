@@ -292,28 +292,36 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should allow setting price when caller has PRICER_ROLE", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller } = await helpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
     const newPrice = _W("1.5");
 
-    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, newPrice))
-      .to.emit(p2pSwapRouter, "PriceUpdated")
-      .withArgs(usdc, usdcNative, newPrice);
-  });
-
-  it("Should revert if tokenIn is zero address", async function () {
-    const { usdcNative, p2pSwapRouter, seller } = await helpers.loadFixture(deployFixture);
-
-    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(ZeroAddress, usdcNative, _W("1"))).to.be.revertedWith(
-      "P2PSwapRouter: tokenIn cannot be the zero address"
+    await expect(
+        p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)
+    ).to.be.revertedWith(
+        `AccessControl: account ${buyer.address.toLowerCase()} is missing role ${await p2pSwapRouter.PRICER_ROLE()}`
     );
+
+    await expect(
+        p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, newPrice)
+    )
+    .to.emit(p2pSwapRouter, "PriceUpdated")
+    .withArgs(usdc, usdcNative, newPrice);
+
+    const updatedPrice = await p2pSwapRouter.getCurrentPrice(usdc, usdcNative);
+    expect(updatedPrice).to.equal(newPrice);
   });
 
-  it("Should revert if tokenOut is zero address", async function () {
+  it("Should revert if tokenOut or tokenIn is zero address", async function () {
     const { usdc, p2pSwapRouter, seller } = await helpers.loadFixture(deployFixture);
 
     await expect(p2pSwapRouter.connect(seller).setCurrentPrice(usdc, ZeroAddress, _W("1"))).to.be.revertedWith(
       "P2PSwapRouter: tokenOut cannot be the zero address"
     );
+
+    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(ZeroAddress, usdc, _W("1"))).to.be.revertedWith(
+        "P2PSwapRouter: tokenIn cannot be the zero address"
+    );
+
   });
 
   it("Should revert if caller does not have PRICER_ROLE", async function () {
@@ -382,6 +390,9 @@ describe("P2PSwapRouter Unit Tests", function () {
     await expect(p2pSwapRouter.connect(admin).setOnBehalfOf(buyer))
       .to.emit(p2pSwapRouter, "OnBehalfOfChanged")
       .withArgs(buyer);
+
+    const newOnBehalfOf = await p2pSwapRouter.getOnBehalfOf();
+    expect(newOnBehalfOf).to.equal(buyer.address)
   });
 
   it("Should revert if caller does not have ADMIN_ROLE", async function () {
@@ -391,4 +402,131 @@ describe("P2PSwapRouter Unit Tests", function () {
       `AccessControl: account ${seller.address.toLowerCase()} is missing role ${await p2pSwapRouter.ADMIN_ROLE()}`
     );
   });
+
+
+  it("Successful input swaps with != 1 price & Slippage error", async function () {
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
+    await p2pSwapRouter.connect(seller).setCurrentPrice(usdcNative, usdc, _W("1.02"));
+    await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
+
+    await expect(
+      p2pSwapRouter.connect(buyer).exactInputSingle({
+        tokenIn: usdcNative,
+        tokenOut: usdc,
+        amountIn: _A(100),
+        fee: 100,
+        recipient: buyer,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        amountOutMinimum: _A(95),
+        sqrtPriceLimitX96: 0,
+      })
+    ).not.to.be.reverted;
+
+    let usdcBalanceAfter = await usdc.balanceOf(seller);
+    let usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);
+
+    expect(usdcNativeBalanceAfter).to.equal(_A(1100));
+    expect(usdcBalanceAfter).to.be.closeTo(_A(900), _W("1.02"));
+
+    await p2pSwapRouter.connect(seller).setCurrentPrice(usdcNative, usdc, _W("1.06"));
+    await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
+
+    await expect(
+        p2pSwapRouter.connect(buyer).exactInputSingle({
+          tokenIn: usdcNative,
+          tokenOut: usdc,
+          amountIn: _A(100),
+          fee: 100,
+          recipient: buyer,
+          deadline: Math.floor(Date.now() / 1000) + 3600,
+          amountOutMinimum: _A(95),
+          sqrtPriceLimitX96: 0,
+        })
+    ).to.be.revertedWith("The output amount is less than the slippage");
+
+    await expect(
+        p2pSwapRouter.connect(buyer).exactInputSingle({
+          tokenIn: usdcNative,
+          tokenOut: usdc,
+          amountIn: _A(100),
+          fee: 100,
+          recipient: buyer,
+          deadline: Math.floor(Date.now() / 1000) + 3600,
+          amountOutMinimum: _A(94),
+          sqrtPriceLimitX96: 0,
+        })
+    ).not.to.be.reverted;
+
+    usdcBalanceAfter = await usdc.balanceOf(seller);
+    usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);
+
+    expect(usdcNativeBalanceAfter).to.equal(_A(1200));
+    expect(usdcBalanceAfter).to.be.closeTo(_A(800), _W("1.06"));
+
+  });
+
+  it("Successful output swaps with != 1 price & Slippage error", async function () {
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
+
+    await p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, _W("0.98"));
+    await usdc.connect(buyer).approve(p2pSwapRouter, _A(105));
+    await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
+
+    await expect(
+      p2pSwapRouter.connect(buyer).exactOutputSingle({
+        tokenIn: usdc,
+        tokenOut: usdcNative,
+        amountOut: _A(100),
+        fee: 100,
+        recipient: buyer,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        amountInMaximum: _A(102),
+        sqrtPriceLimitX96: 0,
+      })
+    ).not.to.be.reverted;
+
+    let usdcBalanceAfter = await usdc.balanceOf(seller);
+    let usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);
+
+    expect(usdcBalanceAfter).to.be.closeTo(_A(1100), _W("0.98"));
+    expect(usdcNativeBalanceAfter).to.be.equal(_A(900));
+
+    await p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, _W("0.94"));
+    await usdc.connect(buyer).approve(p2pSwapRouter, _A(105));
+    await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
+
+    await expect(
+        p2pSwapRouter.connect(buyer).exactOutputSingle({
+          tokenIn: usdc,
+          tokenOut: usdcNative,
+          amountOut: _A(100),
+          fee: 100,
+          recipient: buyer,
+          deadline: Math.floor(Date.now() / 1000) + 3600,
+          amountInMaximum: _A(90),
+          sqrtPriceLimitX96: 0,
+        })
+    ).to.be.revertedWith("The input amount exceeds the slippage");
+
+    await expect(
+        p2pSwapRouter.connect(buyer).exactOutputSingle({
+          tokenIn: usdc,
+          tokenOut: usdcNative,
+          amountOut: _A(100),
+          fee: 100,
+          recipient: buyer,
+          deadline: Math.floor(Date.now() / 1000) + 3600,
+          amountInMaximum: _A(105),
+          sqrtPriceLimitX96: 0,
+        })
+    ).not.to.be.reverted;
+
+    usdcBalanceAfter = await usdc.balanceOf(seller);
+    usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);
+
+    expect(usdcBalanceAfter).to.be.closeTo(_A(1200), _W("0.94"));
+    expect(usdcNativeBalanceAfter).to.be.equal(_A(800));
+
+  });
+
 });
