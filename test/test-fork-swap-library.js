@@ -13,6 +13,7 @@ const ADDRESSES = {
   USDC: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
   USDM: "0x59D9356E565Ab3A36dD77763Fc0d87fEaf85508C",
   USDC_NATIVE: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+  USDCNativeWhale: "0xD36ec33c8bed5a9F7B6630855f1533455b98a418",
   USDCWhale: "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
   CURVE_ROUTER: "0xF0d4c12A5768D806021F80a262B4d39d26C58b8D",
 };
@@ -174,6 +175,35 @@ const variants = [
       return ret;
     },
     invalidSwapConfig: buildCurveConfig(_W("0.01"), ZeroAddress, []),
+  },
+  {
+    name: "P2PSwapRouter",
+    tagit: tagit,
+    fixture: async () => {
+      const ret = await setUp();
+      const { lp, admin, swapTesterMock, currency } = ret;
+      const usdcNative = await initForkCurrency(ADDRESSES.USDC_NATIVE, ADDRESSES.USDCNativeWhale, [lp], [_A(INITIAL)]);
+
+      const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
+      const swapRouter = await P2PSwapRouter.deploy(lp, admin);
+
+      const PRICER_ROLE = await swapRouter.PRICER_ROLE();
+      await swapRouter.connect(admin).grantRole(PRICER_ROLE, lp);
+
+      const SWAP_ROLE = await swapRouter.SWAP_ROLE();
+      await swapRouter.connect(admin).grantRole(SWAP_ROLE, swapTesterMock);
+
+      await swapRouter.connect(lp).setCurrentPrice(ADDRESSES.USDC, ADDRESSES.USDC_NATIVE, _W("1"));
+      await swapRouter.connect(lp).setCurrentPrice(ADDRESSES.USDC_NATIVE, ADDRESSES.USDC, _W("1"));
+
+      await currency.connect(lp).approve(swapRouter, _A(1000));
+      await usdcNative.connect(lp).approve(swapRouter, _A(10000));
+
+      ret.swapConfig = buildUniswapConfig(_W("0.02"), 100, swapRouter.target);
+
+      return ret;
+    },
+    invalidSwapConfig: buildUniswapConfig(_W("0.02"), 0, ADDRESSES.UNISWAP),
   },
 ];
 

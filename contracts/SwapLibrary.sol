@@ -134,9 +134,7 @@ library SwapLibrary {
     address tokenOut,
     uint256 price
   ) internal view returns (uint256) {
-    return
-      (amount * _toWadFactor(tokenIn)).wadDiv(price).wadMul(WadRayMath.WAD - maxSlippage) /
-      _toWadFactor(tokenOut);
+    return (amount * _toWadFactor(tokenIn)).wadDiv(price).wadMul(WadRayMath.WAD - maxSlippage) / _toWadFactor(tokenOut);
   }
 
   function _calcMaxAmount(
@@ -146,9 +144,7 @@ library SwapLibrary {
     address tokenOut,
     uint256 price
   ) internal view returns (uint256) {
-    return
-      (amount * _toWadFactor(tokenOut)).wadMul(price).wadMul(WadRayMath.WAD + maxSlippage) /
-      _toWadFactor(tokenIn);
+    return (amount * _toWadFactor(tokenOut)).wadMul(price).wadMul(WadRayMath.WAD + maxSlippage) / _toWadFactor(tokenIn);
   }
 
   function _exactInputUniswap(
@@ -174,8 +170,7 @@ library SwapLibrary {
     });
 
     uint256 received = cp.router.exactInputSingle(params);
-    if (IERC20Metadata(tokenIn).allowance(address(this), address(cp.router)) != 0)
-      revert AllowanceShouldGoBackToZero();
+    if (IERC20Metadata(tokenIn).allowance(address(this), address(cp.router)) != 0) revert AllowanceShouldGoBackToZero();
     // Sanity check
     if (received < amountOutMin) revert ReceivedLessThanAcceptable(received, amountOutMin);
     return received;
@@ -226,17 +221,9 @@ library SwapLibrary {
     uint256 amountOutMin = _calcMinAmount(amount, swapConfig.maxSlippage, tokenIn, tokenOut, price);
 
     IERC20Metadata(tokenIn).approve(address(router), amount);
-    received = router.exchange(
-      route.route,
-      route.swapParams,
-      amount,
-      amountOutMin,
-      route.pools,
-      address(this)
-    );
+    received = router.exchange(route.route, route.swapParams, amount, amountOutMin, route.pools, address(this));
 
-    if (IERC20Metadata(tokenIn).allowance(address(this), address(router)) != 0)
-      revert AllowanceShouldGoBackToZero();
+    if (IERC20Metadata(tokenIn).allowance(address(this), address(router)) != 0) revert AllowanceShouldGoBackToZero();
     // Sanity check
     if (received < amountOutMin) revert ReceivedLessThanAcceptable(received, amountOutMin);
     return received;
