@@ -51,7 +51,7 @@ describe("P2PSwapRouter Unit Tests", function () {
       amountIn: _A(100),
       fee: 100,
       recipient: buyer,
-      deadline: Math.floor(Date.now() / 1000) + 3600,
+      deadline: (await helpers.time.latest()) + 3600,
       amountOutMinimum: _A(95),
       sqrtPriceLimitX96: 0,
     });
@@ -75,7 +75,7 @@ describe("P2PSwapRouter Unit Tests", function () {
       amountOut: _A(95),
       fee: 100,
       recipient: buyer,
-      deadline: Math.floor(Date.now() / 1000) + 3600,
+      deadline: (await helpers.time.latest()) + 3600,
       amountInMaximum: _A(100),
       sqrtPriceLimitX96: 0,
     });
@@ -99,7 +99,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountIn: _A(100),
         fee: 100,
         recipient: seller,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
@@ -120,7 +120,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOut: _A(95),
         fee: 100,
         recipient: seller,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
@@ -141,7 +141,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountIn: _A(100),
         fee: 100,
         recipient: ZeroAddress,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
@@ -153,8 +153,7 @@ describe("P2PSwapRouter Unit Tests", function () {
 
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
-    const deadline = Math.floor(Date.now() / 1000) - 3600;
-    await helpers.time.increaseTo(Math.floor(Date.now() / 1000));
+    const deadline = (await helpers.time.latest()) - 3600 * 24;
 
     await expect(
       p2pSwapRouter.connect(buyer).exactInputSingle({
@@ -182,7 +181,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountIn: 0,
         fee: 100,
         recipient: buyer,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
@@ -203,7 +202,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountIn: _A(100),
         fee: 100,
         recipient: buyer,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountOutMinimum: _A(200),
         sqrtPriceLimitX96: 0,
       })
@@ -222,7 +221,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOut: _A(95),
         fee: 100,
         recipient: ZeroAddress,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
@@ -234,8 +233,7 @@ describe("P2PSwapRouter Unit Tests", function () {
 
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(100));
 
-    const deadline = Math.floor(Date.now() / 1000) - 3600;
-    await helpers.time.increaseTo(Math.floor(Date.now() / 1000));
+    const deadline = (await helpers.time.latest()) - 3600;
 
     await expect(
       p2pSwapRouter.connect(buyer).exactOutputSingle({
@@ -263,7 +261,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOut: 0,
         fee: 100,
         recipient: buyer,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
@@ -295,17 +293,13 @@ describe("P2PSwapRouter Unit Tests", function () {
     const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
     const newPrice = _W("1.5");
 
-    await expect(
-        p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)
-    ).to.be.revertedWith(
-        `AccessControl: account ${buyer.address.toLowerCase()} is missing role ${await p2pSwapRouter.PRICER_ROLE()}`
+    await expect(p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)).to.be.revertedWith(
+      `AccessControl: account ${buyer.address.toLowerCase()} is missing role ${await p2pSwapRouter.PRICER_ROLE()}`
     );
 
-    await expect(
-        p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, newPrice)
-    )
-    .to.emit(p2pSwapRouter, "PriceUpdated")
-    .withArgs(usdc, usdcNative, newPrice);
+    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, newPrice))
+      .to.emit(p2pSwapRouter, "PriceUpdated")
+      .withArgs(usdc, usdcNative, newPrice);
 
     const updatedPrice = await p2pSwapRouter.getCurrentPrice(usdc, usdcNative);
     expect(updatedPrice).to.equal(newPrice);
@@ -319,9 +313,8 @@ describe("P2PSwapRouter Unit Tests", function () {
     );
 
     await expect(p2pSwapRouter.connect(seller).setCurrentPrice(ZeroAddress, usdc, _W("1"))).to.be.revertedWith(
-        "P2PSwapRouter: tokenIn cannot be the zero address"
+      "P2PSwapRouter: tokenIn cannot be the zero address"
     );
-
   });
 
   it("Should revert if caller does not have PRICER_ROLE", async function () {
@@ -392,7 +385,7 @@ describe("P2PSwapRouter Unit Tests", function () {
       .withArgs(buyer);
 
     const newOnBehalfOf = await p2pSwapRouter.getOnBehalfOf();
-    expect(newOnBehalfOf).to.equal(buyer.address)
+    expect(newOnBehalfOf).to.equal(buyer.address);
   });
 
   it("Should revert if caller does not have ADMIN_ROLE", async function () {
@@ -402,7 +395,6 @@ describe("P2PSwapRouter Unit Tests", function () {
       `AccessControl: account ${seller.address.toLowerCase()} is missing role ${await p2pSwapRouter.ADMIN_ROLE()}`
     );
   });
-
 
   it("Successful input swaps with != 1 price & Slippage error", async function () {
     const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
@@ -432,29 +424,29 @@ describe("P2PSwapRouter Unit Tests", function () {
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
     await expect(
-        p2pSwapRouter.connect(buyer).exactInputSingle({
-          tokenIn: usdcNative,
-          tokenOut: usdc,
-          amountIn: _A(100),
-          fee: 100,
-          recipient: buyer,
-          deadline: Math.floor(Date.now() / 1000) + 3600,
-          amountOutMinimum: _A(95),
-          sqrtPriceLimitX96: 0,
-        })
+      p2pSwapRouter.connect(buyer).exactInputSingle({
+        tokenIn: usdcNative,
+        tokenOut: usdc,
+        amountIn: _A(100),
+        fee: 100,
+        recipient: buyer,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        amountOutMinimum: _A(95),
+        sqrtPriceLimitX96: 0,
+      })
     ).to.be.revertedWith("The output amount is less than the slippage");
 
     await expect(
-        p2pSwapRouter.connect(buyer).exactInputSingle({
-          tokenIn: usdcNative,
-          tokenOut: usdc,
-          amountIn: _A(100),
-          fee: 100,
-          recipient: buyer,
-          deadline: Math.floor(Date.now() / 1000) + 3600,
-          amountOutMinimum: _A(94),
-          sqrtPriceLimitX96: 0,
-        })
+      p2pSwapRouter.connect(buyer).exactInputSingle({
+        tokenIn: usdcNative,
+        tokenOut: usdc,
+        amountIn: _A(100),
+        fee: 100,
+        recipient: buyer,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        amountOutMinimum: _A(94),
+        sqrtPriceLimitX96: 0,
+      })
     ).not.to.be.reverted;
 
     usdcBalanceAfter = await usdc.balanceOf(seller);
@@ -462,7 +454,6 @@ describe("P2PSwapRouter Unit Tests", function () {
 
     expect(usdcNativeBalanceAfter).to.equal(_A(1200));
     expect(usdcBalanceAfter).to.be.closeTo(_A(800), _W("1.06"));
-
   });
 
   it("Successful output swaps with != 1 price & Slippage error", async function () {
@@ -496,29 +487,29 @@ describe("P2PSwapRouter Unit Tests", function () {
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
     await expect(
-        p2pSwapRouter.connect(buyer).exactOutputSingle({
-          tokenIn: usdc,
-          tokenOut: usdcNative,
-          amountOut: _A(100),
-          fee: 100,
-          recipient: buyer,
-          deadline: Math.floor(Date.now() / 1000) + 3600,
-          amountInMaximum: _A(90),
-          sqrtPriceLimitX96: 0,
-        })
+      p2pSwapRouter.connect(buyer).exactOutputSingle({
+        tokenIn: usdc,
+        tokenOut: usdcNative,
+        amountOut: _A(100),
+        fee: 100,
+        recipient: buyer,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        amountInMaximum: _A(90),
+        sqrtPriceLimitX96: 0,
+      })
     ).to.be.revertedWith("The input amount exceeds the slippage");
 
     await expect(
-        p2pSwapRouter.connect(buyer).exactOutputSingle({
-          tokenIn: usdc,
-          tokenOut: usdcNative,
-          amountOut: _A(100),
-          fee: 100,
-          recipient: buyer,
-          deadline: Math.floor(Date.now() / 1000) + 3600,
-          amountInMaximum: _A(105),
-          sqrtPriceLimitX96: 0,
-        })
+      p2pSwapRouter.connect(buyer).exactOutputSingle({
+        tokenIn: usdc,
+        tokenOut: usdcNative,
+        amountOut: _A(100),
+        fee: 100,
+        recipient: buyer,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        amountInMaximum: _A(105),
+        sqrtPriceLimitX96: 0,
+      })
     ).not.to.be.reverted;
 
     usdcBalanceAfter = await usdc.balanceOf(seller);
@@ -526,7 +517,5 @@ describe("P2PSwapRouter Unit Tests", function () {
 
     expect(usdcBalanceAfter).to.be.closeTo(_A(1200), _W("0.94"));
     expect(usdcNativeBalanceAfter).to.be.equal(_A(800));
-
   });
-
 });
