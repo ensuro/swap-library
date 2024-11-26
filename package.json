@@ -14,21 +14,19 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "@openzeppelin/hardhat-upgrades": "^3.0.3",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "chai": "^4.3.6",
     "dotenv": "^16.4.5",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
-    "hardhat": "^2.20.1",
+    "hardhat": "^2.22.16",
     "hardhat-contract-sizer": "^2.10.0",
     "prettier": "^3.2.5",
     "solhint": "^4.1.1",
     "solhint-plugin-prettier": "^0.1.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.9.2",
-    "@openzeppelin/contracts-upgradeable": "^4.9.2",
+    "@openzeppelin/contracts": "^5.1.0",
     "@uniswap/v3-periphery": "^1.4.4",
     "solidity-bytes-utils": "^0.8.0"
   },
