@@ -3,7 +3,7 @@ const { ethers } = hre;
 
 const { expect } = require("chai");
 const { buildUniswapConfig, buildCurveConfig, Protocols, curveCustomParams } = require("../js/utils");
-const { _W } = require("../js/test-utils");
+const { _W } = require("@ensuro/utils/js/utils");
 const { ZeroAddress } = ethers;
 
 const RND_ADDR = Array(15)

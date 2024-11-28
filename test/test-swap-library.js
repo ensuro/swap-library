@@ -2,7 +2,8 @@ const hre = require("hardhat");
 const { expect } = require("chai");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 const { Protocols, buildUniswapConfig } = require("../js/utils");
-const { initCurrency, _A, _W } = require("../js/test-utils");
+const { initCurrency } = require("@ensuro/utils/js/test-utils");
+const { _A, _W } = require("@ensuro/utils/js/utils");
 
 const { ethers } = hre;
 const { ZeroAddress } = ethers;
@@ -100,11 +101,11 @@ describe("SwapLibrary library tests", function () {
     swapConfig = buildUniswapConfig(_W("0.02"), _A("0.0005"), ZeroAddress);
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("ERC20: approve to the zero address");
+    ).to.be.revertedWithCustomError(currency, "ERC20InvalidSpender");
 
     await expect(
       swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWith("ERC20: approve to the zero address");
+    ).to.be.revertedWithCustomError(currency, "ERC20InvalidSpender");
   });
 
   it("SwapLibrary exact input", async () => {
