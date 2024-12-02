@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {WadRayMath} from "./dependencies/WadRayMath.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -15,14 +15,21 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
  */
 contract P2PSwapRouter is ISwapRouter, AccessControl {
   using SafeERC20 for IERC20Metadata;
-  using WadRayMath for uint256;
+  using Math for uint256;
   using SafeCast for uint256;
 
+  uint256 internal constant WAD = 1e18;
   bytes32 public constant SWAP_ROLE = keccak256("SWAP_ROLE");
   bytes32 public constant PRICER_ROLE = keccak256("PRICER_ROLE");
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
   error NotImplemented();
+  error OutputAmountLessThanSlippage(uint256 amountOut, uint256 amountOutMinimum);
+  error InputAmountExceedsSlippage(uint256 amountIn, uint256 amountInMaximum);
+  error DeadlineInThePast();
+  error AmountCannotBeZero();
+  error TokenCannotBeZero();
+  error RecipientCannotBeZero();
 
   event PriceUpdated(address tokenIn, address tokenOut, uint256 price);
   event OnBehalfOfChanged(address indexed onBehalfOf);
@@ -54,15 +61,15 @@ contract P2PSwapRouter is ISwapRouter, AccessControl {
   function exactInputSingle(
     ExactInputSingleParams calldata params
   ) external payable onlyRole(SWAP_ROLE) returns (uint256 amountOut) {
-    require(params.recipient != address(0), "Recipient cannot be zero address");
-    require(params.deadline >= block.timestamp, "Deadline in the past");
-    require(params.amountIn > 0, "amountIn cannot be zero");
+    if (params.recipient == address(0)) revert RecipientCannotBeZero();
+    if (params.deadline < block.timestamp) revert DeadlineInThePast();
+    if (params.amountIn == 0) revert AmountCannotBeZero();
 
-    uint256 amountOutInWad = (params.amountIn * _toWadFactor(params.tokenIn)).wadDiv(
-      _prices[params.tokenIn][params.tokenOut]
-    );
+    uint256 amountOutInWad = (params.amountIn * _toWadFactor(params.tokenIn)).mulDiv(WAD, _prices[params.tokenIn][params.tokenOut]);
     amountOut = amountOutInWad / _toWadFactor(params.tokenOut);
-    require(amountOut >= params.amountOutMinimum, "The output amount is less than the slippage");
+    if (amountOut < params.amountOutMinimum) {
+      revert OutputAmountLessThanSlippage(amountOut, params.amountOutMinimum);
+    }
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, _onBehalfOf, params.amountIn);
     IERC20Metadata(params.tokenOut).safeTransferFrom(_onBehalfOf, params.recipient, amountOut);
@@ -74,24 +81,24 @@ contract P2PSwapRouter is ISwapRouter, AccessControl {
   function exactOutputSingle(
     ExactOutputSingleParams calldata params
   ) external payable onlyRole(SWAP_ROLE) returns (uint256 amountIn) {
-    require(params.recipient != address(0), "Recipient cannot be zero address");
-    require(params.deadline >= block.timestamp, "Deadline in the past");
-    require(params.amountOut > 0, "AmountOut cannot be zero");
+    if (params.recipient == address(0)) revert RecipientCannotBeZero();
+    if (params.deadline < block.timestamp) revert DeadlineInThePast();
+    if (params.amountOut == 0) revert AmountCannotBeZero();
 
-    uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).wadMul(
-      _prices[params.tokenIn][params.tokenOut]
-    );
+    uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).mulDiv(_prices[params.tokenIn][params.tokenOut], WAD);
     amountIn = amountInWad / _toWadFactor(params.tokenIn);
 
-    require(amountIn <= params.amountInMaximum, "The input amount exceeds the slippage");
+    if (amountIn > params.amountInMaximum) {
+      revert InputAmountExceedsSlippage(amountIn, params.amountInMaximum);
+    }
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, _onBehalfOf, amountIn);
     IERC20Metadata(params.tokenOut).safeTransferFrom(_onBehalfOf, params.recipient, params.amountOut);
   }
 
   function setCurrentPrice(address tokenIn, address tokenOut, uint256 price_) external onlyRole(PRICER_ROLE) {
-    require(tokenIn != address(0), "P2PSwapRouter: tokenIn cannot be the zero address");
-    require(tokenOut != address(0), "P2PSwapRouter: tokenOut cannot be the zero address");
+    if (tokenIn == address(0)) revert TokenCannotBeZero();
+    if (tokenOut == address(0)) revert TokenCannotBeZero();
     _prices[tokenIn][tokenOut] = price_;
     emit PriceUpdated(tokenIn, tokenOut, price_);
   }

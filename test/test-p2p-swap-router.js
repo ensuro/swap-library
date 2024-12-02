@@ -137,7 +137,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Recipient cannot be zero address");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "RecipientCannotBeZero");
   });
 
   it("exactInputSingle - Should revert if deadline is in the past", async function () {
@@ -158,7 +158,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Deadline in the past");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "DeadlineInThePast");
   });
 
   it("exactInputSingle - Should revert if amountIn is zero", async function () {
@@ -177,7 +177,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("amountIn cannot be zero");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "AmountCannotBeZero");
   });
 
   it("exactInputSingle - Should revert if output amount is less than the slippage", async function () {
@@ -198,7 +198,8 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(200),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The output amount is less than the slippage");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "OutputAmountLessThanSlippage")
+    .withArgs(_A(100), _A(200));
   });
 
   it("exactOutputSingle - Should revert if recipient address is zero", async function () {
@@ -217,7 +218,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Recipient cannot be zero address");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "RecipientCannotBeZero");
   });
 
   it("exactOutputSingle - Should revert if deadline is in the past", async function () {
@@ -238,7 +239,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Deadline in the past");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "DeadlineInThePast");
   });
 
   it("exactOutputSingle - Should revert if amountOut is zero", async function () {
@@ -257,7 +258,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("AmountOut cannot be zero");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "AmountCannotBeZero");
   });
 
   it("exactOutputSingle - Should revert if input amount exceeds slippage", async function () {
@@ -278,7 +279,8 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(50),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The input amount exceeds the slippage");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "InputAmountExceedsSlippage")
+    .withArgs(_A(95), _A(50));
   });
 
   it("Should allow setting price when caller has PRICER_ROLE", async function () {
@@ -302,13 +304,9 @@ describe("P2PSwapRouter Unit Tests", function () {
   it("Should revert if tokenOut or tokenIn is zero address", async function () {
     const { usdc, p2pSwapRouter, seller } = await helpers.loadFixture(deployFixture);
 
-    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(usdc, ZeroAddress, _W("1"))).to.be.revertedWith(
-      "P2PSwapRouter: tokenOut cannot be the zero address"
-    );
+    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(usdc, ZeroAddress, _W("1"))).to.be.revertedWithCustomError(p2pSwapRouter, "TokenCannotBeZero")
 
-    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(ZeroAddress, usdc, _W("1"))).to.be.revertedWith(
-      "P2PSwapRouter: tokenIn cannot be the zero address"
-    );
+    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(ZeroAddress, usdc, _W("1"))).to.be.revertedWithCustomError(p2pSwapRouter, "TokenCannotBeZero")
   });
 
   it("Should revert if caller does not have PRICER_ROLE", async function () {
@@ -432,7 +430,8 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The output amount is less than the slippage");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "OutputAmountLessThanSlippage")
+    .withArgs((_A(100) * _W(1)) / _W(1.06), _A(95));
 
     await expect(
       p2pSwapRouter.connect(buyer).exactInputSingle({
@@ -495,7 +494,8 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(90),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The input amount exceeds the slippage");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "InputAmountExceedsSlippage")
+    .withArgs(_A(94), _A(90));
 
     await expect(
       p2pSwapRouter.connect(buyer).exactOutputSingle({
