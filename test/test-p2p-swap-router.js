@@ -438,7 +438,7 @@ describe("P2PSwapRouter Unit Tests", function () {
       })
     )
       .to.be.revertedWithCustomError(p2pSwapRouter, "OutputAmountLessThanSlippage")
-      .withArgs((_A(100) * _W(1)) / _W(1.06), _A(95));
+      .withArgs(_A("94.339622"), _A(95));
 
     await expect(
       p2pSwapRouter.connect(buyer).exactInputSingle({

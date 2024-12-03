@@ -6,26 +6,20 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ISwapRouterErrors} from "../interfaces/ISwapRouterErrors.sol";
 
 /**
  * @title SwapRouterMock
  * @notice SwapRouter mock that can swap a single type of token for several others
  */
-contract SwapRouterMock is ISwapRouter {
+contract SwapRouterMock is ISwapRouterErrors {
   using SafeERC20 for IERC20Metadata;
   using Math for uint256;
   using SafeCast for uint256;
 
   uint256 internal constant WAD = 1e18;
 
-  error NotImplemented();
-  error OutputAmountLessThanSlippage(uint256 amountOut, uint256 amountOutMinimum);
-  error InputAmountExceedsSlippage(uint256 amountIn, uint256 amountInMaximum);
-  error DeadlineInThePast();
-  error AmountCannotBeZero();
-  error RecipientCannotBeZero();
   error AdminCannotBeZero();
-  error TokenCannotBeZero();
   event PriceUpdated(address tokenIn, address tokenOut, uint256 price);
   error NotEnoughBalance(uint256 available, uint256 required);
 
