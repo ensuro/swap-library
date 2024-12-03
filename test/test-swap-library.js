@@ -221,10 +221,9 @@ describe("SwapLibrary library tests", function () {
 
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("0.65")); // 0.62 + 3%
 
-    await expect(
-      swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62"))
-    ).to.be.revertedWithCustomError(swapRouter, "OutputAmountLessThanSlippage")
-    .withArgs((_A(10) * _W(1)) / _W("0.65"), (_A(10) * _W(1)) / _W("0.62"));
+    await expect(swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.62")))
+      .to.be.revertedWithCustomError(swapRouter, "OutputAmountLessThanSlippage")
+      .withArgs((_A(10) * _W(1)) / _W("0.65"), (_A(10) * _W(1)) / _W("0.62"));
   });
 
   it("SwapLibrary exact input with price lower than slippage", async () => {
@@ -236,7 +235,7 @@ describe("SwapLibrary library tests", function () {
 
     await expect(
       swapTesterMock.executeExactInput(swapConfig, currency.target, wmatic.target, _A(10), _W("0.60")) // 0.62 - 3%
-    ).to.be.revertedWithCustomError(swapRouter, "OutputAmountLessThanSlippage")
+    ).to.be.revertedWithCustomError(swapRouter, "OutputAmountLessThanSlippage");
   });
 
   it("SwapLibrary exact output with price higger than slippage", async () => {
@@ -247,7 +246,7 @@ describe("SwapLibrary library tests", function () {
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("1.15")); // 1.1 + 3%
     await expect(
       swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("1.1"))
-    ).to.be.revertedWithCustomError(swapRouter, "InputAmountExceedsSlippage")
+    ).to.be.revertedWithCustomError(swapRouter, "InputAmountExceedsSlippage");
   });
 
   it("SwapLibrary exact output with price lower than slippage", async () => {
@@ -258,7 +257,7 @@ describe("SwapLibrary library tests", function () {
     await swapRouter.setCurrentPrice(currency.target, wmatic.target, _W("1.1"));
     await expect(
       swapTesterMock.executeExactOutput(swapConfig, currency.target, wmatic.target, _W(10), _W("1.04")) // 1.1 - 3%
-    ).to.be.revertedWithCustomError(swapRouter, "InputAmountExceedsSlippage")
+    ).to.be.revertedWithCustomError(swapRouter, "InputAmountExceedsSlippage");
   });
 
   it("SwapLibrary exact input/output with 18 decimals tokenIn", async () => {

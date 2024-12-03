@@ -61,15 +61,16 @@ contract P2PSwapRouter is ISwapRouter, AccessControl {
   function exactInputSingle(
     ExactInputSingleParams calldata params
   ) external payable onlyRole(SWAP_ROLE) returns (uint256 amountOut) {
-    if (params.recipient == address(0)) revert RecipientCannotBeZero();
-    if (params.deadline < block.timestamp) revert DeadlineInThePast();
-    if (params.amountIn == 0) revert AmountCannotBeZero();
+    require(params.recipient != address(0), RecipientCannotBeZero());
+    require(params.deadline >= block.timestamp, DeadlineInThePast());
+    require(params.amountIn > 0, AmountCannotBeZero());
 
-    uint256 amountOutInWad = (params.amountIn * _toWadFactor(params.tokenIn)).mulDiv(WAD, _prices[params.tokenIn][params.tokenOut]);
+    uint256 amountOutInWad = (params.amountIn * _toWadFactor(params.tokenIn)).mulDiv(
+      WAD,
+      _prices[params.tokenIn][params.tokenOut]
+    );
     amountOut = amountOutInWad / _toWadFactor(params.tokenOut);
-    if (amountOut < params.amountOutMinimum) {
-      revert OutputAmountLessThanSlippage(amountOut, params.amountOutMinimum);
-    }
+    require(amountOut >= params.amountOutMinimum, OutputAmountLessThanSlippage(amountOut, params.amountOutMinimum));
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, _onBehalfOf, params.amountIn);
     IERC20Metadata(params.tokenOut).safeTransferFrom(_onBehalfOf, params.recipient, amountOut);
@@ -81,24 +82,24 @@ contract P2PSwapRouter is ISwapRouter, AccessControl {
   function exactOutputSingle(
     ExactOutputSingleParams calldata params
   ) external payable onlyRole(SWAP_ROLE) returns (uint256 amountIn) {
-    if (params.recipient == address(0)) revert RecipientCannotBeZero();
-    if (params.deadline < block.timestamp) revert DeadlineInThePast();
-    if (params.amountOut == 0) revert AmountCannotBeZero();
+    require(params.recipient != address(0), RecipientCannotBeZero());
+    require(params.deadline >= block.timestamp, DeadlineInThePast());
+    require(params.amountOut > 0, AmountCannotBeZero());
 
-    uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).mulDiv(_prices[params.tokenIn][params.tokenOut], WAD);
+    uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).mulDiv(
+      _prices[params.tokenIn][params.tokenOut],
+      WAD
+    );
     amountIn = amountInWad / _toWadFactor(params.tokenIn);
-
-    if (amountIn > params.amountInMaximum) {
-      revert InputAmountExceedsSlippage(amountIn, params.amountInMaximum);
-    }
+    require(amountIn <= params.amountInMaximum, InputAmountExceedsSlippage(amountIn, params.amountInMaximum));
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, _onBehalfOf, amountIn);
     IERC20Metadata(params.tokenOut).safeTransferFrom(_onBehalfOf, params.recipient, params.amountOut);
   }
 
   function setCurrentPrice(address tokenIn, address tokenOut, uint256 price_) external onlyRole(PRICER_ROLE) {
-    if (tokenIn == address(0)) revert TokenCannotBeZero();
-    if (tokenOut == address(0)) revert TokenCannotBeZero();
+    require(tokenIn != address(0), TokenCannotBeZero());
+    require(tokenOut != address(0), TokenCannotBeZero());
     _prices[tokenIn][tokenOut] = price_;
     emit PriceUpdated(tokenIn, tokenOut, price_);
   }
