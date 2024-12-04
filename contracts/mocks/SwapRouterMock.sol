@@ -26,7 +26,7 @@ contract SwapRouterMock is ISwapRouterErrors {
   mapping(address => mapping(address => uint256)) private _prices;
 
   constructor(address admin) {
-    if (admin == address(0)) revert AdminCannotBeZero();
+    require(admin != address(0), AdminCannotBeZero());
   }
 
   function _toWadFactor(address token) internal view returns (uint256) {
@@ -60,10 +60,7 @@ contract SwapRouterMock is ISwapRouterErrors {
     require(params.deadline >= block.timestamp, DeadlineInThePast());
     require(params.amountOut > 0, AmountCannotBeZero());
     uint256 balance = IERC20Metadata(params.tokenOut).balanceOf(address(this));
-    require(
-      IERC20Metadata(params.tokenOut).balanceOf(address(this)) >= params.amountOut,
-      NotEnoughBalance(balance, params.amountOut)
-    );
+    require(balance >= params.amountOut, NotEnoughBalance(balance, params.amountOut));
 
     uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).mulDiv(
       _prices[params.tokenIn][params.tokenOut],
