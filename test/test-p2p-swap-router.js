@@ -1,7 +1,8 @@
 const hre = require("hardhat");
 const { expect } = require("chai");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { initCurrency, _A, _W } = require("../js/test-utils");
+const { initCurrency } = require("@ensuro/utils/js/test-utils");
+const { _A, _W, grantRole } = require("@ensuro/utils/js/utils");
 
 const { ethers } = hre;
 const { ZeroAddress } = ethers;
@@ -25,14 +26,9 @@ describe("P2PSwapRouter Unit Tests", function () {
     const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
     const p2pSwapRouter = await P2PSwapRouter.deploy(seller, admin);
 
-    const ADMIN_ROLE = await p2pSwapRouter.ADMIN_ROLE();
-    await p2pSwapRouter.connect(admin).grantRole(ADMIN_ROLE, admin);
-
-    const PRICER_ROLE = await p2pSwapRouter.PRICER_ROLE();
-    await p2pSwapRouter.connect(admin).grantRole(PRICER_ROLE, seller);
-
-    const SWAP_ROLE = await p2pSwapRouter.SWAP_ROLE();
-    await p2pSwapRouter.connect(admin).grantRole(SWAP_ROLE, buyer);
+    await grantRole(hre, p2pSwapRouter.connect(admin), "ADMIN_ROLE", admin);
+    await grantRole(hre, p2pSwapRouter.connect(admin), "PRICER_ROLE", seller);
+    await grantRole(hre, p2pSwapRouter.connect(admin), "SWAP_ROLE", buyer);
 
     await usdc.connect(seller).approve(p2pSwapRouter, _A(1000));
     await usdcNative.connect(seller).approve(p2pSwapRouter, _A(1000));
@@ -103,9 +99,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith(
-      `AccessControl: account ${seller.address.toLowerCase()} is missing role ${await p2pSwapRouter.SWAP_ROLE()}`
-    );
+    ).to.be.revertedWithACError(p2pSwapRouter, seller, "SWAP_ROLE");
   });
 
   it("exactOutputSingle - Should revert if caller does not have SWAP_ROLE", async function () {
@@ -124,9 +118,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith(
-      `AccessControl: account ${seller.address.toLowerCase()} is missing role ${await p2pSwapRouter.SWAP_ROLE()}`
-    );
+    ).to.be.revertedWithACError(p2pSwapRouter, seller, "SWAP_ROLE");
   });
 
   it("exactInputSingle - Should revert if recipient address is zero", async function () {
@@ -145,7 +137,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Recipient cannot be zero address");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "RecipientCannotBeZero");
   });
 
   it("exactInputSingle - Should revert if deadline is in the past", async function () {
@@ -166,7 +158,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Deadline in the past");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "DeadlineInThePast");
   });
 
   it("exactInputSingle - Should revert if amountIn is zero", async function () {
@@ -185,7 +177,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("amountIn cannot be zero");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "AmountCannotBeZero");
   });
 
   it("exactInputSingle - Should revert if output amount is less than the slippage", async function () {
@@ -206,7 +198,9 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(200),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The output amount is less than the slippage");
+    )
+      .to.be.revertedWithCustomError(p2pSwapRouter, "OutputAmountLessThanSlippage")
+      .withArgs(_A(100), _A(200));
   });
 
   it("exactOutputSingle - Should revert if recipient address is zero", async function () {
@@ -225,7 +219,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Recipient cannot be zero address");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "RecipientCannotBeZero");
   });
 
   it("exactOutputSingle - Should revert if deadline is in the past", async function () {
@@ -246,7 +240,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("Deadline in the past");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "DeadlineInThePast");
   });
 
   it("exactOutputSingle - Should revert if amountOut is zero", async function () {
@@ -265,7 +259,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("AmountOut cannot be zero");
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "AmountCannotBeZero");
   });
 
   it("exactOutputSingle - Should revert if input amount exceeds slippage", async function () {
@@ -286,15 +280,19 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(50),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The input amount exceeds the slippage");
+    )
+      .to.be.revertedWithCustomError(p2pSwapRouter, "InputAmountExceedsSlippage")
+      .withArgs(_A(95), _A(50));
   });
 
   it("Should allow setting price when caller has PRICER_ROLE", async function () {
     const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
     const newPrice = _W("1.5");
 
-    await expect(p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)).to.be.revertedWith(
-      `AccessControl: account ${buyer.address.toLowerCase()} is missing role ${await p2pSwapRouter.PRICER_ROLE()}`
+    await expect(p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)).to.be.revertedWithACError(
+      p2pSwapRouter,
+      buyer,
+      "PRICER_ROLE"
     );
 
     await expect(p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, newPrice))
@@ -308,21 +306,23 @@ describe("P2PSwapRouter Unit Tests", function () {
   it("Should revert if tokenOut or tokenIn is zero address", async function () {
     const { usdc, p2pSwapRouter, seller } = await helpers.loadFixture(deployFixture);
 
-    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(usdc, ZeroAddress, _W("1"))).to.be.revertedWith(
-      "P2PSwapRouter: tokenOut cannot be the zero address"
-    );
+    await expect(
+      p2pSwapRouter.connect(seller).setCurrentPrice(usdc, ZeroAddress, _W("1"))
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "TokenCannotBeZero");
 
-    await expect(p2pSwapRouter.connect(seller).setCurrentPrice(ZeroAddress, usdc, _W("1"))).to.be.revertedWith(
-      "P2PSwapRouter: tokenIn cannot be the zero address"
-    );
+    await expect(
+      p2pSwapRouter.connect(seller).setCurrentPrice(ZeroAddress, usdc, _W("1"))
+    ).to.be.revertedWithCustomError(p2pSwapRouter, "TokenCannotBeZero");
   });
 
   it("Should revert if caller does not have PRICER_ROLE", async function () {
     const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
     const newPrice = _W("2");
 
-    await expect(p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)).to.be.revertedWith(
-      `AccessControl: account ${buyer.address.toLowerCase()} is missing role ${await p2pSwapRouter.PRICER_ROLE()}`
+    await expect(p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)).to.be.revertedWithACError(
+      p2pSwapRouter,
+      buyer,
+      "PRICER_ROLE"
     );
   });
 
@@ -391,8 +391,10 @@ describe("P2PSwapRouter Unit Tests", function () {
   it("Should revert if caller does not have ADMIN_ROLE", async function () {
     const { p2pSwapRouter, buyer, seller } = await helpers.loadFixture(deployFixture);
 
-    await expect(p2pSwapRouter.connect(seller).setOnBehalfOf(buyer)).to.be.revertedWith(
-      `AccessControl: account ${seller.address.toLowerCase()} is missing role ${await p2pSwapRouter.ADMIN_ROLE()}`
+    await expect(p2pSwapRouter.connect(seller).setOnBehalfOf(buyer)).to.be.revertedWithACError(
+      p2pSwapRouter,
+      seller,
+      "ADMIN_ROLE"
     );
   });
 
@@ -434,7 +436,9 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The output amount is less than the slippage");
+    )
+      .to.be.revertedWithCustomError(p2pSwapRouter, "OutputAmountLessThanSlippage")
+      .withArgs(_A("94.339622"), _A(95));
 
     await expect(
       p2pSwapRouter.connect(buyer).exactInputSingle({
@@ -497,7 +501,9 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountInMaximum: _A(90),
         sqrtPriceLimitX96: 0,
       })
-    ).to.be.revertedWith("The input amount exceeds the slippage");
+    )
+      .to.be.revertedWithCustomError(p2pSwapRouter, "InputAmountExceedsSlippage")
+      .withArgs(_A(94), _A(90));
 
     await expect(
       p2pSwapRouter.connect(buyer).exactOutputSingle({

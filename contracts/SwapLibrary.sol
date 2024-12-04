@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {WadRayMath} from "./dependencies/WadRayMath.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {ICurveRouter} from "./dependencies/ICurveRouter.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -14,8 +13,9 @@ import {CurveRoutes} from "./CurveRoutes.sol";
  * @author Ensuro
  */
 library SwapLibrary {
-  using WadRayMath for uint256;
+  using Math for uint256;
 
+  uint256 internal constant WAD = 1e18;
   // Limit on the number of exchanges done by the exactOutput curve workaround
   uint256 internal constant MAX_EXCHANGE = 2;
 
@@ -134,7 +134,7 @@ library SwapLibrary {
     address tokenOut,
     uint256 price
   ) internal view returns (uint256) {
-    return (amount * _toWadFactor(tokenIn)).wadDiv(price).wadMul(WadRayMath.WAD - maxSlippage) / _toWadFactor(tokenOut);
+    return (amount * _toWadFactor(tokenIn)).mulDiv(WAD - maxSlippage, price) / _toWadFactor(tokenOut);
   }
 
   function _calcMaxAmount(
@@ -144,7 +144,7 @@ library SwapLibrary {
     address tokenOut,
     uint256 price
   ) internal view returns (uint256) {
-    return (amount * _toWadFactor(tokenOut)).wadMul(price).wadMul(WadRayMath.WAD + maxSlippage) / _toWadFactor(tokenIn);
+    return (amount * _toWadFactor(tokenOut)).mulDiv(price, WAD).mulDiv(WAD + maxSlippage, WAD) / _toWadFactor(tokenIn);
   }
 
   function _exactInputUniswap(

@@ -1,7 +1,8 @@
 const hre = require("hardhat");
 const { expect } = require("chai");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { initForkCurrency, setupChain, _A, _W } = require("../js/test-utils");
+const { initForkCurrency, setupChain } = require("@ensuro/utils/js/test-utils");
+const { _A, _W } = require("@ensuro/utils/js/utils");
 const { buildUniswapConfig, buildCurveConfig } = require("../js/utils");
 
 const { ethers } = hre;

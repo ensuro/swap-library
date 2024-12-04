@@ -1,28 +1,32 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import {WadRayMath} from "../dependencies/WadRayMath.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ISwapRouterErrors} from "../interfaces/ISwapRouterErrors.sol";
 
 /**
  * @title SwapRouterMock
  * @notice SwapRouter mock that can swap a single type of token for several others
  */
-contract SwapRouterMock is ISwapRouter {
+contract SwapRouterMock is ISwapRouterErrors {
   using SafeERC20 for IERC20Metadata;
-  using WadRayMath for uint256;
+  using Math for uint256;
   using SafeCast for uint256;
 
-  error NotImplemented();
+  uint256 internal constant WAD = 1e18;
+
+  error AdminCannotBeZero();
   event PriceUpdated(address tokenIn, address tokenOut, uint256 price);
+  error NotEnoughBalance(uint256 available, uint256 required);
 
   mapping(address => mapping(address => uint256)) private _prices;
 
   constructor(address admin) {
-    require(admin != address(0), "Admin cannot be zero address");
+    require(admin != address(0), AdminCannotBeZero());
   }
 
   function _toWadFactor(address token) internal view returns (uint256) {
@@ -33,15 +37,16 @@ contract SwapRouterMock is ISwapRouter {
    * @inheritdoc ISwapRouter
    */
   function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut) {
-    require(params.recipient != address(0), "Recipient cannot be zero address");
-    require(params.deadline >= block.timestamp, "Deadline in the past");
-    require(params.amountIn > 0, "amountIn cannot be zero");
+    require(params.recipient != address(0), RecipientCannotBeZero());
+    require(params.deadline >= block.timestamp, DeadlineInThePast());
+    require(params.amountIn > 0, AmountCannotBeZero());
 
-    uint256 amountOutInWad = (params.amountIn * _toWadFactor(params.tokenIn)).wadDiv(
+    uint256 amountOutInWad = (params.amountIn * _toWadFactor(params.tokenIn)).mulDiv(
+      WAD,
       _prices[params.tokenIn][params.tokenOut]
     );
     amountOut = amountOutInWad / _toWadFactor(params.tokenOut);
-    require(amountOut >= params.amountOutMinimum, "The output amount is less than the slippage");
+    require(amountOut >= params.amountOutMinimum, OutputAmountLessThanSlippage(amountOut, params.amountOutMinimum));
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, address(this), params.amountIn);
     IERC20Metadata(params.tokenOut).safeTransfer(params.recipient, amountOut);
@@ -51,31 +56,32 @@ contract SwapRouterMock is ISwapRouter {
    * @inheritdoc ISwapRouter
    */
   function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn) {
-    require(params.recipient != address(0), "Recipient cannot be zero address");
-    require(params.deadline >= block.timestamp, "Deadline in the past");
-    require(params.amountOut > 0, "AmountOut cannot be zero");
-    require(IERC20Metadata(params.tokenOut).balanceOf(address(this)) >= params.amountOut, "Not enough balance");
+    require(params.recipient != address(0), RecipientCannotBeZero());
+    require(params.deadline >= block.timestamp, DeadlineInThePast());
+    require(params.amountOut > 0, AmountCannotBeZero());
+    uint256 balance = IERC20Metadata(params.tokenOut).balanceOf(address(this));
+    require(balance >= params.amountOut, NotEnoughBalance(balance, params.amountOut));
 
-    uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).wadMul(
-      _prices[params.tokenIn][params.tokenOut]
+    uint256 amountInWad = (params.amountOut * _toWadFactor(params.tokenOut)).mulDiv(
+      _prices[params.tokenIn][params.tokenOut],
+      WAD
     );
     amountIn = amountInWad / _toWadFactor(params.tokenIn);
-
-    require(amountIn <= params.amountInMaximum, "The input amount exceeds the slippage");
+    require(amountIn <= params.amountInMaximum, InputAmountExceedsSlippage(amountIn, params.amountInMaximum));
 
     IERC20Metadata(params.tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
     IERC20Metadata(params.tokenOut).safeTransfer(params.recipient, params.amountOut);
   }
 
   function withdraw(address token, uint256 amount) external {
-    require(token != address(0), "Token cannot be zero address");
-    require(amount > 0, "Amount cannot be zero");
+    require(token != address(0), TokenCannotBeZero());
+    require(amount > 0, TokenCannotBeZero());
     IERC20Metadata(token).safeTransfer(msg.sender, amount);
   }
 
   function setCurrentPrice(address tokenIn, address tokenOut, uint256 price_) external {
-    require(tokenIn != address(0), "SwapRouterMock: tokenIn cannot be the zero address");
-    require(tokenOut != address(0), "SwapRouterMock: tokenOut cannot be the zero address");
+    require(tokenIn != address(0), TokenCannotBeZero());
+    require(tokenOut != address(0), TokenCannotBeZero());
     _prices[tokenIn][tokenOut] = price_;
     emit PriceUpdated(tokenIn, tokenOut, price_);
   }
