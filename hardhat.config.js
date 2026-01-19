@@ -6,12 +6,13 @@ require("hardhat-contract-sizer");
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-    version: "0.8.28",
+    version: "0.8.30",
     settings: {
       optimizer: {
         enabled: true,
         runs: 200,
       },
+      evmVersion: "prague",
     },
   },
   contractSizer: {
