@@ -1,9 +1,10 @@
-const hre = require("hardhat");
-const { ethers } = hre;
+import hre from "hardhat";
 
-const { expect } = require("chai");
-const { buildUniswapConfig, buildCurveConfig, Protocols, curveCustomParams } = require("../js/utils");
-const { _W } = require("@ensuro/utils/js/utils");
+import { expect } from "chai";
+import { buildUniswapConfig, buildCurveConfig, Protocols, curveCustomParams } from "../js/utils.js";
+import { _W } from "@ensuro/utils/js/utils";
+
+const { ethers } = await hre.network.connect();
 const { ZeroAddress } = ethers;
 
 const RND_ADDR = Array(15)
@@ -95,7 +96,7 @@ describe("Test CurveRoutes library", function () {
   it("Checks curveRoutes validates the config", async () => {
     let routes = [{ route: RND_ADDR.slice(0, 3), swapParams: [[1, 2, 3, 4, 5]] }];
     let swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
-    await expect(mock.validate(swapConfig[2])).not.to.be.reverted;
+    await mock.validate(swapConfig[2]);
 
     swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], []);
     await expect(mock.validate(swapConfig[2])).to.be.revertedWithCustomError(mock, "AtLeastOneRoute");
@@ -123,7 +124,7 @@ describe("Test CurveRoutes library", function () {
     // 5 swaps OK
     routes = [{ route: RND_ADDR.slice(0, 11), swapParams: Array(5).fill([1, 2, 3, 4, 5]) }];
     swapConfig = buildCurveConfig(_W("0.01"), RND_ADDR[0], routes);
-    await expect(mock.validate(swapConfig[2])).not.to.be.reverted;
+    await mock.validate(swapConfig[2]);
 
     // More than 5 swaps
     routes = [{ route: RND_ADDR.slice(0, 13), swapParams: Array(6).fill([1, 2, 3, 4, 5]) }];

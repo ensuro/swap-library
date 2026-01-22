@@ -1,4 +1,5 @@
-const ethers = require("ethers");
+import { ethers } from "ethers";
+
 const { ZeroAddress } = ethers;
 
 // enum
@@ -61,8 +62,7 @@ function curveCustomParams(curveRouter, routes) {
   encodedRoutes.forEach((er) => encodeStream.push(...er));
   return encodeStream;
 }
-
-module.exports = {
+export {
   Protocols,
   buildUniswapConfig,
   buildCurveConfig,
