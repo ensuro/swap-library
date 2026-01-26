@@ -8,8 +8,9 @@ import { buildUniswapConfig, buildCurveConfig } from "../js/utils.js";
 // default connection
 const TEST_BLOCK = 57500000;
 const connection = await setupChain(TEST_BLOCK);
+const { networkHelpers: helpers, ethers } = connection;
 
-const { ZeroAddress } = connection.ethers;
+const { ZeroAddress } = ethers;
 
 const ADDRESSES = {
   // polygon mainnet addresses
@@ -32,12 +33,12 @@ const INITIAL = 10000;
 // const FEETIER = 3000;
 
 async function setUp() {
-  const [, lp, lp2, anon, guardian, admin] = await connection.ethers.getSigners();
-  const SwapLibrary = await connection.ethers.getContractFactory("SwapLibrary");
+  const [, lp, lp2, anon, guardian, admin] = await ethers.getSigners();
+  const SwapLibrary = await ethers.getContractFactory("SwapLibrary");
   const swapLibrary = await SwapLibrary.deploy();
 
-  const adminAddr = await connection.ethers.resolveAddress(admin);
-  const SwapTesterMock = await connection.ethers.getContractFactory("SwapTesterMock", {
+  const adminAddr = await ethers.resolveAddress(admin);
+  const SwapTesterMock = await ethers.getContractFactory("SwapTesterMock", {
     libraries: {
       SwapLibrary: swapLibrary.target,
     },
@@ -194,7 +195,7 @@ const variants = [
         [_A(INITIAL)]
       );
 
-      const P2PSwapRouter = await connection.ethers.getContractFactory("P2PSwapRouter");
+      const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
       const swapRouter = await P2PSwapRouter.deploy(lp, admin);
 
       const PRICER_ROLE = await swapRouter.PRICER_ROLE();
@@ -220,14 +221,14 @@ const variants = [
 variants.forEach((variant) => {
   describe(`${variant.name} contract tests`, function () {
     variant.tagit("Checks validation with wrong and right config", async () => {
-      const { swapTesterMock, swapConfig } = await connection.networkHelpers.loadFixture(variant.fixture);
+      const { swapTesterMock, swapConfig } = await helpers.loadFixture(variant.fixture);
       await swapTesterMock.validateConfig(swapConfig);
-      await expect(swapTesterMock.validateConfig(variant.invalidSwapConfig)).to.revert(connection.ethers);
+      await expect(swapTesterMock.validateConfig(variant.invalidSwapConfig)).to.revert(ethers);
     });
 
     variant.tagit("Checks swaps OK USDC -> USDC_NATIVE and back", async () => {
-      const { currency, swapTesterMock, swapConfig } = await connection.networkHelpers.loadFixture(variant.fixture);
-      const nativeUSDC = await connection.ethers.getContractAt("IERC20", ADDRESSES.USDC_NATIVE);
+      const { currency, swapTesterMock, swapConfig } = await helpers.loadFixture(variant.fixture);
+      const nativeUSDC = await ethers.getContractAt("IERC20", ADDRESSES.USDC_NATIVE);
 
       await currency.balanceOf(swapTesterMock);
       expect(await currency.balanceOf(swapTesterMock)).to.equal(_A(INITIAL));
@@ -265,8 +266,8 @@ variants.forEach((variant) => {
     });
 
     variant.tagit("Checks swaps OK USDC -> USDM and back [Curve]", async () => {
-      const { currency, swapTesterMock, swapConfig } = await connection.networkHelpers.loadFixture(variant.fixture);
-      const USDM = await connection.ethers.getContractAt("IERC20", ADDRESSES.USDM);
+      const { currency, swapTesterMock, swapConfig } = await helpers.loadFixture(variant.fixture);
+      const USDM = await ethers.getContractAt("IERC20", ADDRESSES.USDM);
       expect(await currency.balanceOf(swapTesterMock)).to.equal(_A(INITIAL));
       let tx = await swapTesterMock.executeExactInput(swapConfig, currency.target, USDM.target, _A(100), _W("1"));
       let usdc = await currency.balanceOf(swapTesterMock);
