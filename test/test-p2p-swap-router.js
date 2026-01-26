@@ -5,27 +5,28 @@ import { initCurrency } from "@ensuro/utils/js/test-utils";
 import { _A, _W, getRole, grantRole } from "@ensuro/utils/js/utils";
 
 const connection = await hre.network.connect();
-const { ZeroAddress } = connection.ethers;
+const { networkHelpers: helpers, ethers } = connection;
+const { ZeroAddress } = ethers;
 
 describe("P2PSwapRouter Unit Tests", function () {
   async function deployFixture() {
-    const [, seller, admin, buyer] = await connection.ethers.getSigners();
+    const [, seller, admin, buyer] = await ethers.getSigners();
 
     const usdc = await initCurrency(
-      connection.ethers,
+      ethers,
       { name: "Test USDC", symbol: "USDC", decimals: 6, initial_supply: _A(100000) },
       [seller, buyer],
       [_A(1000), _A(2000)]
     );
 
     const usdcNative = await initCurrency(
-      connection.ethers,
+      ethers,
       { name: "Test USDC_NATIVE", symbol: "USDC_NATIVE", decimals: 6, initial_supply: _A(100000) },
       [seller, buyer],
       [_A(1000), _A(2000)]
     );
 
-    const P2PSwapRouter = await connection.ethers.getContractFactory("P2PSwapRouter");
+    const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
     const p2pSwapRouter = await P2PSwapRouter.deploy(seller, admin);
 
     await grantRole(hre, p2pSwapRouter.connect(admin), "ADMIN_ROLE", admin);
@@ -39,8 +40,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   }
 
   it("Should allow a successful swap with exactInputSingle", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
     await p2pSwapRouter.connect(seller).setCurrentPrice(usdcNative, usdc, _W("1"));
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -50,7 +50,7 @@ describe("P2PSwapRouter Unit Tests", function () {
       amountIn: _A(100),
       fee: 100,
       recipient: buyer,
-      deadline: (await connection.networkHelpers.time.latest()) + 3600,
+      deadline: (await helpers.time.latest()) + 3600,
       amountOutMinimum: _A(95),
       sqrtPriceLimitX96: 0,
     });
@@ -63,8 +63,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should allow a successful swap with exactOutputSingle", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
 
     await p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, _W("1"));
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(100));
@@ -75,7 +74,7 @@ describe("P2PSwapRouter Unit Tests", function () {
       amountOut: _A(95),
       fee: 100,
       recipient: buyer,
-      deadline: (await connection.networkHelpers.time.latest()) + 3600,
+      deadline: (await helpers.time.latest()) + 3600,
       amountInMaximum: _A(100),
       sqrtPriceLimitX96: 0,
     });
@@ -88,12 +87,11 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactInputSingle - Should revert if caller does not have SWAP_ROLE", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
-    const deadline = (await connection.networkHelpers.time.latest()) + 3600;
+    const deadline = (await helpers.time.latest()) + 3600;
 
     await expect(
       p2pSwapRouter.connect(seller).exactInputSingle(
@@ -113,8 +111,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactOutputSingle - Should revert if caller does not have SWAP_ROLE", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -125,7 +122,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOut: _A(95),
         fee: 100,
         recipient: seller,
-        deadline: (await connection.networkHelpers.time.latest()) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
@@ -133,7 +130,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactInputSingle - Should revert if recipient address is zero", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -144,7 +141,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountIn: _A(100),
         fee: 100,
         recipient: ZeroAddress,
-        deadline: (await connection.networkHelpers.time.latest()) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
@@ -152,11 +149,11 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactInputSingle - Should revert if deadline is in the past", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
-    const deadline = (await connection.networkHelpers.time.latest()) - 3600 * 24;
+    const deadline = (await helpers.time.latest()) - 3600 * 24;
 
     await expect(
       p2pSwapRouter.connect(buyer).exactInputSingle({
@@ -173,7 +170,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactInputSingle - Should revert if amountIn is zero", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -184,7 +181,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountIn: 0,
         fee: 100,
         recipient: buyer,
-        deadline: (await connection.networkHelpers.time.latest()) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountOutMinimum: _A(95),
         sqrtPriceLimitX96: 0,
       })
@@ -192,8 +189,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactInputSingle - Should revert if output amount is less than the slippage", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer, seller } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer, seller } = await helpers.loadFixture(deployFixture);
 
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -206,7 +202,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountIn: _A(100),
         fee: 100,
         recipient: buyer,
-        deadline: (await connection.networkHelpers.time.latest()) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountOutMinimum: _A(200),
         sqrtPriceLimitX96: 0,
       })
@@ -216,7 +212,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactOutputSingle - Should revert if recipient address is zero", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -227,7 +223,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOut: _A(95),
         fee: 100,
         recipient: ZeroAddress,
-        deadline: (await connection.networkHelpers.time.latest()) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
@@ -235,11 +231,11 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactOutputSingle - Should revert if deadline is in the past", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(100));
 
-    const deadline = (await connection.networkHelpers.time.latest()) - 3600;
+    const deadline = (await helpers.time.latest()) - 3600;
 
     await expect(
       p2pSwapRouter.connect(buyer).exactOutputSingle({
@@ -256,7 +252,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactOutputSingle - Should revert if amountOut is zero", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -267,7 +263,7 @@ describe("P2PSwapRouter Unit Tests", function () {
         amountOut: 0,
         fee: 100,
         recipient: buyer,
-        deadline: (await connection.networkHelpers.time.latest()) + 3600,
+        deadline: (await helpers.time.latest()) + 3600,
         amountInMaximum: _A(100),
         sqrtPriceLimitX96: 0,
       })
@@ -275,8 +271,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("exactOutputSingle - Should revert if input amount exceeds slippage", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer, seller } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer, seller } = await helpers.loadFixture(deployFixture);
 
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -299,8 +294,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should allow setting price when caller has PRICER_ROLE", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
     const newPrice = _W("1.5");
 
     await expect(p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)).to.be.revertedWithACError(
@@ -318,7 +312,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should revert if tokenOut or tokenIn is zero address", async function () {
-    const { usdc, p2pSwapRouter, seller } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, p2pSwapRouter, seller } = await helpers.loadFixture(deployFixture);
 
     await expect(
       p2pSwapRouter.connect(seller).setCurrentPrice(usdc, ZeroAddress, _W("1"))
@@ -330,7 +324,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should revert if caller does not have PRICER_ROLE", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
     const newPrice = _W("2");
 
     await expect(p2pSwapRouter.connect(buyer).setCurrentPrice(usdc, usdcNative, newPrice)).to.be.revertedWithACError(
@@ -341,7 +335,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should update price multiple times correctly", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller } = await helpers.loadFixture(deployFixture);
     const firstPrice = _W("1.2");
     const secondPrice = _W("2.3");
 
@@ -355,7 +349,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should revert when exactInput is called", async function () {
-    const { p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await expect(
       p2pSwapRouter.connect(buyer).exactInput({
@@ -369,7 +363,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should revert when exactOutput is called", async function () {
-    const { p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await expect(
       p2pSwapRouter.connect(buyer).exactOutput({
@@ -383,7 +377,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should revert when uniswapV3SwapCallback is called", async function () {
-    const { p2pSwapRouter, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { p2pSwapRouter, buyer } = await helpers.loadFixture(deployFixture);
 
     await expect(p2pSwapRouter.connect(buyer).uniswapV3SwapCallback(0, 0, "0x")).to.be.revertedWithCustomError(
       p2pSwapRouter,
@@ -392,7 +386,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should allow setting onBehalfOf when caller has ADMIN_ROLE", async function () {
-    const { p2pSwapRouter, admin, buyer } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { p2pSwapRouter, admin, buyer } = await helpers.loadFixture(deployFixture);
 
     await expect(p2pSwapRouter.connect(admin).setOnBehalfOf(buyer))
       .to.emit(p2pSwapRouter, "OnBehalfOfChanged")
@@ -403,7 +397,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Should revert if caller does not have ADMIN_ROLE", async function () {
-    const { p2pSwapRouter, buyer, seller } = await connection.networkHelpers.loadFixture(deployFixture);
+    const { p2pSwapRouter, buyer, seller } = await helpers.loadFixture(deployFixture);
 
     await expect(p2pSwapRouter.connect(seller).setOnBehalfOf(buyer)).to.be.revertedWithACError(
       p2pSwapRouter,
@@ -413,8 +407,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Successful input swaps with != 1 price & Slippage error", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
     await p2pSwapRouter.connect(seller).setCurrentPrice(usdcNative, usdc, _W("1.02"));
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
@@ -472,8 +465,7 @@ describe("P2PSwapRouter Unit Tests", function () {
   });
 
   it("Successful output swaps with != 1 price & Slippage error", async function () {
-    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } =
-      await connection.networkHelpers.loadFixture(deployFixture);
+    const { usdc, usdcNative, p2pSwapRouter, seller, buyer } = await helpers.loadFixture(deployFixture);
 
     await p2pSwapRouter.connect(seller).setCurrentPrice(usdc, usdcNative, _W("0.98"));
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(105));
