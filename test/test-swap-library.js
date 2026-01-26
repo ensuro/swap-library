@@ -1,11 +1,11 @@
-const hre = require("hardhat");
-const { expect } = require("chai");
-const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { Protocols, buildUniswapConfig } = require("../js/utils");
-const { initCurrency } = require("@ensuro/utils/js/test-utils");
-const { _A, _W } = require("@ensuro/utils/js/utils");
+import hre from "hardhat";
+import { expect } from "chai";
+import { Protocols, buildUniswapConfig } from "../js/utils.js";
+import { initCurrency } from "@ensuro/utils/js/test-utils.js";
+import { _A, _W } from "@ensuro/utils/js/utils.js";
 
-const { ethers } = hre;
+const connection = await hre.network.connect();
+const { networkHelpers: helpers, ethers } = connection;
 const { ZeroAddress } = ethers;
 
 describe("SwapLibrary library tests", function () {
@@ -17,12 +17,14 @@ describe("SwapLibrary library tests", function () {
 
   async function deployFixture() {
     const currency = await initCurrency(
+      ethers,
       { name: "Test USDC", symbol: "USDC", decimals: 6, initial_supply: _A(50000) },
       [lp, cust, owner, extra],
       [_A("10000"), _A("2000"), _A("1000"), _A("20000")]
     );
 
     const wmatic = await initCurrency(
+      ethers,
       { name: "Test wmatic", symbol: "wmatic", decimals: 18, initial_supply: _W(100000) },
       [lp, cust, extra],
       [_W("8000"), _W("500"), _W("50000")]
@@ -268,6 +270,7 @@ describe("SwapLibrary library tests", function () {
     const { wmatic, swapRouter, swapTesterMock } = await helpers.loadFixture(deployFixture);
 
     const currency18Decimals = await initCurrency(
+      ethers,
       { name: "Test 18Dec", symbol: "18Dec", decimals: 18, initial_supply: _W(500000) },
       [lp, cust, owner, extra],
       [_W("10000"), _W("2000"), _W("1000"), _W("100000")]
