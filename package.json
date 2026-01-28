@@ -14,7 +14,7 @@
     "test": "hardhat test"
   },
   "devDependencies": {
-    "@ensuro/utils": "^0.3.2-beta1",
+    "@ensuro/utils": "^1.0.0-beta1",
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.2",
     "@solidstate/hardhat-contract-sizer": "^3.0.0",
     "dotenv": "^16.4.5",
