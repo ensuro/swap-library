@@ -230,7 +230,6 @@ variants.forEach((variant) => {
       const { currency, swapTesterMock, swapConfig } = await helpers.loadFixture(variant.fixture);
       const nativeUSDC = await ethers.getContractAt("IERC20", ADDRESSES.USDC_NATIVE);
 
-      await currency.balanceOf(swapTesterMock);
       expect(await currency.balanceOf(swapTesterMock)).to.equal(_A(INITIAL));
       let tx = await swapTesterMock.executeExactInput(swapConfig, currency.target, nativeUSDC.target, _A(100), _W("1"));
       let usdc = await currency.balanceOf(swapTesterMock);
