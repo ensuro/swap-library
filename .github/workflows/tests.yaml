@@ -23,7 +23,10 @@ jobs:
           REPORT_GAS: "1"
           ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           ALCHEMY_URL_POLYGON: ${{ secrets.ALCHEMY_URL_POLYGON }}
-      - run: npx hardhat test --coverage
+      - name: Coverage test run
+        run: |
+          mkdir -p coverage/html/contracts # workaround hardhat issue
+          npx hardhat test --coverage
         env:
           ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           ALCHEMY_URL_POLYGON: ${{ secrets.ALCHEMY_URL_POLYGON }}
