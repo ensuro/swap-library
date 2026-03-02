@@ -17,3 +17,8 @@ node_modules
 
 # Package build
 /build
+
+
+/edr-cache
+
+/types

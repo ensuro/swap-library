@@ -1,10 +1,11 @@
-const hre = require("hardhat");
-const { expect } = require("chai");
-const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { initCurrency } = require("@ensuro/utils/js/test-utils");
-const { _A, _W, grantRole } = require("@ensuro/utils/js/utils");
+import hre from "hardhat";
+import { Assertion, expect } from "chai";
 
-const { ethers } = hre;
+import { initCurrency } from "@ensuro/utils/js/test-utils";
+import { _A, _W, getRole, grantRole } from "@ensuro/utils/js/utils";
+
+const connection = await hre.network.connect();
+const { networkHelpers: helpers, ethers } = connection;
 const { ZeroAddress } = ethers;
 
 describe("P2PSwapRouter Unit Tests", function () {
@@ -12,12 +13,14 @@ describe("P2PSwapRouter Unit Tests", function () {
     const [, seller, admin, buyer] = await ethers.getSigners();
 
     const usdc = await initCurrency(
+      ethers,
       { name: "Test USDC", symbol: "USDC", decimals: 6, initial_supply: _A(100000) },
       [seller, buyer],
       [_A(1000), _A(2000)]
     );
 
     const usdcNative = await initCurrency(
+      ethers,
       { name: "Test USDC_NATIVE", symbol: "USDC_NATIVE", decimals: 6, initial_supply: _A(100000) },
       [seller, buyer],
       [_A(1000), _A(2000)]
@@ -88,17 +91,22 @@ describe("P2PSwapRouter Unit Tests", function () {
 
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
+    const deadline = (await helpers.time.latest()) + 3600;
+
     await expect(
-      p2pSwapRouter.connect(seller).exactInputSingle({
-        tokenIn: usdcNative,
-        tokenOut: usdc,
-        amountIn: _A(100),
-        fee: 100,
-        recipient: seller,
-        deadline: (await helpers.time.latest()) + 3600,
-        amountOutMinimum: _A(95),
-        sqrtPriceLimitX96: 0,
-      })
+      p2pSwapRouter.connect(seller).exactInputSingle(
+        {
+          tokenIn: usdcNative,
+          tokenOut: usdc,
+          amountIn: _A(100),
+          fee: 100,
+          recipient: seller,
+          deadline: deadline,
+          amountOutMinimum: _A(95),
+          sqrtPriceLimitX96: 0,
+        },
+        { gasLimit: 500000 }
+      )
     ).to.be.revertedWithACError(p2pSwapRouter, seller, "SWAP_ROLE");
   });
 
@@ -403,18 +411,16 @@ describe("P2PSwapRouter Unit Tests", function () {
     await p2pSwapRouter.connect(seller).setCurrentPrice(usdcNative, usdc, _W("1.02"));
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
-    await expect(
-      p2pSwapRouter.connect(buyer).exactInputSingle({
-        tokenIn: usdcNative,
-        tokenOut: usdc,
-        amountIn: _A(100),
-        fee: 100,
-        recipient: buyer,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
-        amountOutMinimum: _A(95),
-        sqrtPriceLimitX96: 0,
-      })
-    ).not.to.be.reverted;
+    await p2pSwapRouter.connect(buyer).exactInputSingle({
+      tokenIn: usdcNative,
+      tokenOut: usdc,
+      amountIn: _A(100),
+      fee: 100,
+      recipient: buyer,
+      deadline: Math.floor(Date.now() / 1000) + 3600,
+      amountOutMinimum: _A(95),
+      sqrtPriceLimitX96: 0,
+    });
 
     let usdcBalanceAfter = await usdc.balanceOf(seller);
     let usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);
@@ -440,18 +446,16 @@ describe("P2PSwapRouter Unit Tests", function () {
       .to.be.revertedWithCustomError(p2pSwapRouter, "OutputAmountLessThanSlippage")
       .withArgs(_A("94.339622"), _A(95));
 
-    await expect(
-      p2pSwapRouter.connect(buyer).exactInputSingle({
-        tokenIn: usdcNative,
-        tokenOut: usdc,
-        amountIn: _A(100),
-        fee: 100,
-        recipient: buyer,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
-        amountOutMinimum: _A(94),
-        sqrtPriceLimitX96: 0,
-      })
-    ).not.to.be.reverted;
+    await p2pSwapRouter.connect(buyer).exactInputSingle({
+      tokenIn: usdcNative,
+      tokenOut: usdc,
+      amountIn: _A(100),
+      fee: 100,
+      recipient: buyer,
+      deadline: Math.floor(Date.now() / 1000) + 3600,
+      amountOutMinimum: _A(94),
+      sqrtPriceLimitX96: 0,
+    });
 
     usdcBalanceAfter = await usdc.balanceOf(seller);
     usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);
@@ -467,18 +471,16 @@ describe("P2PSwapRouter Unit Tests", function () {
     await usdc.connect(buyer).approve(p2pSwapRouter, _A(105));
     await usdcNative.connect(buyer).approve(p2pSwapRouter, _A(100));
 
-    await expect(
-      p2pSwapRouter.connect(buyer).exactOutputSingle({
-        tokenIn: usdc,
-        tokenOut: usdcNative,
-        amountOut: _A(100),
-        fee: 100,
-        recipient: buyer,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
-        amountInMaximum: _A(102),
-        sqrtPriceLimitX96: 0,
-      })
-    ).not.to.be.reverted;
+    await p2pSwapRouter.connect(buyer).exactOutputSingle({
+      tokenIn: usdc,
+      tokenOut: usdcNative,
+      amountOut: _A(100),
+      fee: 100,
+      recipient: buyer,
+      deadline: Math.floor(Date.now() / 1000) + 3600,
+      amountInMaximum: _A(102),
+      sqrtPriceLimitX96: 0,
+    });
 
     let usdcBalanceAfter = await usdc.balanceOf(seller);
     let usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);
@@ -505,18 +507,16 @@ describe("P2PSwapRouter Unit Tests", function () {
       .to.be.revertedWithCustomError(p2pSwapRouter, "InputAmountExceedsSlippage")
       .withArgs(_A(94), _A(90));
 
-    await expect(
-      p2pSwapRouter.connect(buyer).exactOutputSingle({
-        tokenIn: usdc,
-        tokenOut: usdcNative,
-        amountOut: _A(100),
-        fee: 100,
-        recipient: buyer,
-        deadline: Math.floor(Date.now() / 1000) + 3600,
-        amountInMaximum: _A(105),
-        sqrtPriceLimitX96: 0,
-      })
-    ).not.to.be.reverted;
+    await p2pSwapRouter.connect(buyer).exactOutputSingle({
+      tokenIn: usdc,
+      tokenOut: usdcNative,
+      amountOut: _A(100),
+      fee: 100,
+      recipient: buyer,
+      deadline: Math.floor(Date.now() / 1000) + 3600,
+      amountInMaximum: _A(105),
+      sqrtPriceLimitX96: 0,
+    });
 
     usdcBalanceAfter = await usdc.balanceOf(seller);
     usdcNativeBalanceAfter = await usdcNative.balanceOf(seller);

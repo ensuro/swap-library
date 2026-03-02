@@ -1,11 +1,15 @@
-const hre = require("hardhat");
-const { expect } = require("chai");
-const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { initForkCurrency, setupChain } = require("@ensuro/utils/js/test-utils");
-const { _A, _W } = require("@ensuro/utils/js/utils");
-const { buildUniswapConfig, buildCurveConfig } = require("../js/utils");
+import hre from "hardhat";
+import { expect } from "chai";
 
-const { ethers } = hre;
+import { initForkCurrency, setupChain } from "@ensuro/utils/js/test-utils";
+import { _A, _W } from "@ensuro/utils/js/utils";
+import { buildUniswapConfig, buildCurveConfig } from "../js/utils.js";
+
+// default connection
+const TEST_BLOCK = 57500000;
+const connection = await setupChain(TEST_BLOCK);
+const { networkHelpers: helpers, ethers } = connection;
+
 const { ZeroAddress } = ethers;
 
 const ADDRESSES = {
@@ -22,7 +26,6 @@ const ADDRESSES = {
 // const CURRENCY_DECIMALS = 6;
 // const _A = amountFunction(CURRENCY_DECIMALS);
 // const TEST_BLOCK = 54090000;
-const TEST_BLOCK = 57500000;
 // const MCENT = 10n; // 1/1000 of a cent
 // const CENT = _A("0.01");
 const INITIAL = 10000;
@@ -43,6 +46,7 @@ async function setUp() {
   const swapTesterMock = await SwapTesterMock.deploy();
 
   const currency = await initForkCurrency(
+    connection,
     ADDRESSES.USDC,
     ADDRESSES.USDCWhale,
     [lp, lp2, swapTesterMock],
@@ -183,7 +187,13 @@ const variants = [
     fixture: async () => {
       const ret = await setUp();
       const { lp, admin, swapTesterMock, currency } = ret;
-      const usdcNative = await initForkCurrency(ADDRESSES.USDC_NATIVE, ADDRESSES.USDCNativeWhale, [lp], [_A(INITIAL)]);
+      const usdcNative = await initForkCurrency(
+        connection,
+        ADDRESSES.USDC_NATIVE,
+        ADDRESSES.USDCNativeWhale,
+        [lp],
+        [_A(INITIAL)]
+      );
 
       const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
       const swapRouter = await P2PSwapRouter.deploy(lp, admin);
@@ -210,19 +220,16 @@ const variants = [
 
 variants.forEach((variant) => {
   describe(`${variant.name} contract tests`, function () {
-    before(async () => {
-      await setupChain(TEST_BLOCK);
-    });
-
     variant.tagit("Checks validation with wrong and right config", async () => {
       const { swapTesterMock, swapConfig } = await helpers.loadFixture(variant.fixture);
-      await expect(swapTesterMock.validateConfig(swapConfig)).not.to.be.reverted;
-      await expect(swapTesterMock.validateConfig(variant.invalidSwapConfig)).to.be.reverted;
+      await swapTesterMock.validateConfig(swapConfig);
+      await expect(swapTesterMock.validateConfig(variant.invalidSwapConfig)).to.revert(ethers);
     });
 
     variant.tagit("Checks swaps OK USDC -> USDC_NATIVE and back", async () => {
       const { currency, swapTesterMock, swapConfig } = await helpers.loadFixture(variant.fixture);
       const nativeUSDC = await ethers.getContractAt("IERC20", ADDRESSES.USDC_NATIVE);
+
       expect(await currency.balanceOf(swapTesterMock)).to.equal(_A(INITIAL));
       let tx = await swapTesterMock.executeExactInput(swapConfig, currency.target, nativeUSDC.target, _A(100), _W("1"));
       let usdc = await currency.balanceOf(swapTesterMock);

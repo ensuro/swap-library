@@ -1,14 +1,15 @@
-const ethers = require("ethers");
+import { ethers } from "ethers";
+
 const { ZeroAddress } = ethers;
 
 // enum
-const Protocols = {
+export const Protocols = {
   undefined: 0,
   uniswap: 1,
   curveRouter: 2,
 };
 
-function buildUniswapConfig(slippage, feeTier, router) {
+export function buildUniswapConfig(slippage, feeTier, router) {
   let swapCustomParams = ethers.AbiCoder.defaultAbiCoder().encode(["uint24", "address"], [feeTier, router]);
   return [Protocols.uniswap, slippage, swapCustomParams];
 }
@@ -23,7 +24,7 @@ function buildUniswapConfig(slippage, feeTier, router) {
  *               `pools` is optional.
  *               You don't need to fill with zeros at the end
  */
-function buildCurveConfig(slippage, curveRouter, routes) {
+export function buildCurveConfig(slippage, curveRouter, routes) {
   const encodeStream = curveCustomParams(curveRouter, routes);
   return [
     Protocols.curveRouter,
@@ -35,7 +36,7 @@ function buildCurveConfig(slippage, curveRouter, routes) {
   ];
 }
 
-function curveCustomParams(curveRouter, routes) {
+export function curveCustomParams(curveRouter, routes) {
   const encodeStream = [
     { type: "address", value: curveRouter },
     { type: "uint8", value: routes.length },
@@ -61,10 +62,3 @@ function curveCustomParams(curveRouter, routes) {
   encodedRoutes.forEach((er) => encodeStream.push(...er));
   return encodeStream;
 }
-
-module.exports = {
-  Protocols,
-  buildUniswapConfig,
-  buildCurveConfig,
-  curveCustomParams, // Useful for tests
-};

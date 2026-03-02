@@ -12,18 +12,21 @@ jobs:
         uses: actions/checkout@v2
       - uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
       - run: npm ci
       - run: npx hardhat compile
-      - run: npx hardhat size-contracts
+      - run: npx hardhat contract-size list # TODO: implement diff against main/base branch
       - run: npm run solhint
       - run: npx hardhat test
         env:
           REPORT_GAS: "1"
           ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           ALCHEMY_URL_POLYGON: ${{ secrets.ALCHEMY_URL_POLYGON }}
-      - run: npx hardhat coverage
+      - name: Coverage test run
+        run: |
+          mkdir -p coverage/html/contracts/mocks # workaround hardhat issue
+          npx hardhat test --coverage
         env:
           ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           ALCHEMY_URL_POLYGON: ${{ secrets.ALCHEMY_URL_POLYGON }}
