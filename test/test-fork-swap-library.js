@@ -186,7 +186,7 @@ const variants = [
     tagit: tagit,
     fixture: async () => {
       const ret = await setUp();
-      const { lp, swapTesterMock, currency } = ret;
+      const { lp, admin, swapTesterMock, currency } = ret;
       const usdcNative = await initForkCurrency(
         connection,
         ADDRESSES.USDC_NATIVE,
@@ -196,10 +196,10 @@ const variants = [
       );
 
       const P2PSwapRouter = await ethers.getContractFactory("P2PSwapRouter");
-      const swapRouter = await P2PSwapRouter.deploy(swapTesterMock, swapTesterMock, lp, []);
-
-      await swapRouter.connect(lp).setCurrentPrice(ADDRESSES.USDC, ADDRESSES.USDC_NATIVE, _W("1"));
-      await swapRouter.connect(lp).setCurrentPrice(ADDRESSES.USDC_NATIVE, ADDRESSES.USDC, _W("1"));
+      const swapRouter = await P2PSwapRouter.deploy(lp, swapTesterMock, admin, [
+        { tokenIn: ADDRESSES.USDC, tokenOut: ADDRESSES.USDC_NATIVE, price: _W(1) },
+        { tokenIn: ADDRESSES.USDC_NATIVE, tokenOut: ADDRESSES.USDC, price: _W(1) },
+      ]);
 
       await currency.connect(lp).approve(swapRouter, _A(1000));
       await usdcNative.connect(lp).approve(swapRouter, _A(10000));

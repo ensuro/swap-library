@@ -62,6 +62,7 @@ contracts/
 
 ## Gotchas
 - **Coverage requires mkdir workaround** for `coverage/html/contracts/mocks` before running
+- **Hardhat 3 has no way to exclude files from coverage** — `.solcover.js` `skipFiles` is ignored (solidity-coverage plugin is not used). All compiled contracts appear in the report including mocks and dependencies. Track hardhat#7788 for a fix.
 - **Fork tests need Alchemy RPC URLs** — check `.env` for format, CI uses secrets
 - **USDM is a rebasing token** — fork tests allow off-by-one balance differences for USDM
 - **ESLint is strict** — many rules enabled that differ from defaults (no var, prefer template, sort imports/vars, etc.)
