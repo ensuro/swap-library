@@ -30,7 +30,7 @@ contract P2PSwapRouter is ISwapRouterErrors {
   address public immutable swapper;
   address public immutable pricer;
 
-  event PriceUpdated(address tokenIn, address tokenOut, uint256 price);
+  event PriceUpdated(address indexed tokenIn, address indexed tokenOut, uint256 price);
   error OnlySwapperCanSwap(address caller);
   error OnlyPricerCanChangePrice(address caller);
 
