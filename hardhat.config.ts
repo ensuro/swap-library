@@ -10,7 +10,7 @@ use(chaiAccessControl);
 export default defineConfig({
   plugins: [hardhatToolboxMochaEthers, HardhatContractSizer],
   solidity: {
-    version: "0.8.30",
+    version: "0.8.35",
     settings: {
       optimizer: {
         enabled: true,

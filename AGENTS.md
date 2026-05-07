@@ -6,9 +6,9 @@
 - **Org**: Ensuro — security contact: security@ensuro.co
 
 ## Developer environment
-- **Node**: v22 (see `.nvmrc`). Use `nvm use` before anything else.
+- **Node**: v24 (see `.nvmrc`). Hardhat 3.4.4+ requires Node 22.13.0+. Use `nvm use` before anything else.
 - **Package manager**: npm. Run `npm ci` to install.
-- **Solidity**: 0.8.30, optimizer enabled (200 runs), EVM version `prague`.
+- **Solidity**: 0.8.35, optimizer enabled (200 runs), EVM version `prague`.
 
 ## Commands
 
