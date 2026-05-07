@@ -20,6 +20,10 @@ export default defineConfig({
     },
     npmFilesToBuild: ["@openzeppelin/contracts/token/ERC20/IERC20.sol"],
   },
+  // This is ignored as of HH 3.1.5, but I leave it here for future reference
+  coverage: {
+    skipFiles: ["contracts/mocks/", "contracts/dependencies/"],
+  },
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,
