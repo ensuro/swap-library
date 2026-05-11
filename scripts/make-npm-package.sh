@@ -30,10 +30,10 @@ git archive --format tar HEAD README.md contracts/ js/ | tar xv -C $TARGET_DIR
 mkdir $TARGET_DIR/build
 cp -r artifacts/contracts $TARGET_DIR/build
 
-BUILD_INFO_FILE=$(find artifacts/build-info -name "*.output.json")
+BUILD_INFO_OUTPUT_FILE=$(find artifacts/build-info -name "*.output.json")
 BUILD_INFO_INPUT_FILE=$(find artifacts/build-info -name "*.json" -not -name "*.output.json")
-cp $BUILD_INFO_FILE $TARGET_DIR/build/build-info.json
-cp $BUILD_INFO_INPUT_FILE $TARGET_DIR/build/build-info-input.json
+cp $BUILD_INFO_OUTPUT_FILE $TARGET_DIR/build/build-info-output.json
+cp $BUILD_INFO_INPUT_FILE $TARGET_DIR/build/build-info.json
 
 find $TARGET_DIR -name "*.dbg.json" -delete
 sed "s/%%VERSION%%/$VERSION/" npm-package/package.json >"$TARGET_DIR/package.json"
