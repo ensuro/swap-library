@@ -6,13 +6,13 @@ VERSION=$1
 shift
 
 if [ -z $VERSION ]; then
-    echo "Usage: $0 <version> [<target dir>]" >&2
-    exit 13
+	echo "Usage: $0 <version> [<target dir>]" >&2
+	exit 13
 fi
 
 TARGET_DIR=$1
 if [ -z $TARGET_DIR ]; then
-    TARGET_DIR=./build/npm-package/
+	TARGET_DIR=./build/npm-package/
 fi
 
 rm -fr $TARGET_DIR 2>/dev/null
@@ -30,10 +30,13 @@ git archive --format tar HEAD README.md contracts/ js/ | tar xv -C $TARGET_DIR
 mkdir $TARGET_DIR/build
 cp -r artifacts/contracts $TARGET_DIR/build
 
-cp artifacts/build-info/*.json $TARGET_DIR/build/build-info.json
+BUILD_INFO_FILE=$(find artifacts/build-info -name "*.output.json")
+BUILD_INFO_INPUT_FILE=$(find artifacts/build-info -name "*.json" -not -name "*.output.json")
+cp $BUILD_INFO_FILE $TARGET_DIR/build/build-info.json
+cp $BUILD_INFO_INPUT_FILE $TARGET_DIR/build/build-info-input.json
 
 find $TARGET_DIR -name "*.dbg.json" -delete
-sed "s/%%VERSION%%/$VERSION/" npm-package/package.json > "$TARGET_DIR/package.json"
+sed "s/%%VERSION%%/$VERSION/" npm-package/package.json >"$TARGET_DIR/package.json"
 find $TARGET_DIR
 
 echo "
